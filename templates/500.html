@@ -1,19 +1,18 @@
 {% extends "layout.html" %}
 
-{% block title %}Server Error - College ERP System{% endblock %}
+{% block title %}Server Error{% endblock %}
 
 {% block content %}
-<div class="container text-center py-5">
-    <div class="error-container mb-4">
-        <h1 class="display-1 text-muted">500</h1>
-        <i class="fas fa-exclamation-triangle fa-5x text-danger mb-4"></i>
-        <h2>Server Error</h2>
-        <p class="lead">Something went wrong on our end. We're working to fix the issue.</p>
-    </div>
-    <div class="mt-5">
-        <a href="{{ url_for('auth.index') }}" class="btn btn-primary">
-            <i class="fas fa-home me-2"></i>Go Home
-        </a>
+<div class="text-center">
+    <div class="error-container">
+        <h1 class="display-1">500</h1>
+        <h2 class="mb-4">Server Error</h2>
+        <p class="lead">Something went wrong on our end. Please try again later.</p>
+        <div class="mt-5">
+            <a href="{{ url_for('auth.index') }}" class="btn btn-primary">
+                <i class="fas fa-home me-2"></i>Return to Home
+            </a>
+        </div>
     </div>
 </div>
 {% endblock %}

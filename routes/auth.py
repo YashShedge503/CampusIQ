@@ -1,11 +1,10 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from sqlalchemy.exc import IntegrityError
 
 from app import db
 from models import User, Role, RoleType
-from utils import allowed_file, save_file
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -17,40 +16,48 @@ def index():
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     """User login route."""
+    # Redirect if user is already logged in
     if current_user.is_authenticated:
         return redirect(url_for('auth.index'))
-        
+    
+    # Handle POST request (form submission)
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        remember = True if request.form.get('remember') else False
+        remember = 'remember' in request.form
         
+        # Validate input
+        if not username or not password:
+            flash('Username and password are required.', 'danger')
+            return redirect(url_for('auth.login'))
+        
+        # Check if user exists
         user = User.query.filter_by(username=username).first()
         
-        # Check if user exists and password is correct
+        # Validate credentials
         if not user or not user.check_password(password):
-            flash('Please check your login details and try again.', 'danger')
-            return render_template('auth/login.html')
-            
-        # Check if user is active
+            flash('Invalid username or password.', 'danger')
+            return redirect(url_for('auth.login'))
+        
+        # Check if account is active
         if not user.is_active:
-            flash('Your account is inactive. Please contact an administrator.', 'warning')
-            return render_template('auth/login.html')
-            
-        # Log in the user
+            flash('Your account has been disabled. Please contact an administrator.', 'danger')
+            return redirect(url_for('auth.login'))
+        
+        # Log the user in
         login_user(user, remember=remember)
         
         # Redirect to appropriate dashboard based on role
         if user.is_admin():
-            return redirect(url_for('admin.dashboard'))
+            return redirect(url_for('admin_bp.dashboard'))
         elif user.is_faculty():
             return redirect(url_for('faculty.dashboard'))
         elif user.is_student():
-            return redirect(url_for('student.dashboard'))
-        
-        # Default redirect
-        return redirect(url_for('auth.index'))
-        
+            return redirect(url_for('student_bp.dashboard'))
+        else:
+            return redirect(url_for('auth.index'))
+    
+    # Handle GET request (display login form)
     return render_template('auth/login.html')
 
 @auth_bp.route('/logout')
@@ -59,14 +66,19 @@ def logout():
     """User logout route."""
     logout_user()
     flash('You have been logged out successfully.', 'success')
-    return redirect(url_for('auth.login'))
+    return redirect(url_for('auth.index'))
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     """User registration route."""
+    # Redirect if user is already logged in
     if current_user.is_authenticated:
         return redirect(url_for('auth.index'))
-        
+    
+    # Get all available roles (except admin)
+    roles = Role.query.filter(Role.name != RoleType.ADMIN).all()
+    
+    # Handle POST request (form submission)
     if request.method == 'POST':
         username = request.form.get('username')
         email = request.form.get('email')
@@ -74,52 +86,55 @@ def register():
         confirm_password = request.form.get('confirm_password')
         first_name = request.form.get('first_name')
         last_name = request.form.get('last_name')
-        role_type = RoleType.STUDENT  # Default to student role for self-registration
+        role_id = request.form.get('role_id', type=int)
         
-        # Basic validation
-        if not username or not email or not password or not first_name or not last_name:
+        # Validate input
+        if not username or not email or not password or not confirm_password or not first_name or not last_name or not role_id:
             flash('All fields are required.', 'danger')
-            return render_template('auth/register.html')
-            
+            return render_template('auth/register.html', roles=roles)
+        
+        # Check if passwords match
         if password != confirm_password:
             flash('Passwords do not match.', 'danger')
-            return render_template('auth/register.html')
-            
+            return render_template('auth/register.html', roles=roles)
+        
         # Check if username or email already exists
         if User.query.filter_by(username=username).first():
             flash('Username already exists.', 'danger')
-            return render_template('auth/register.html')
-            
+            return render_template('auth/register.html', roles=roles)
+        
         if User.query.filter_by(email=email).first():
             flash('Email already exists.', 'danger')
-            return render_template('auth/register.html')
+            return render_template('auth/register.html', roles=roles)
         
-        # Get the role
-        student_role = Role.query.filter_by(name=role_type).first()
-        if not student_role:
-            flash('Error creating account. Please contact an administrator.', 'danger')
-            return render_template('auth/register.html')
-            
-        # Create the user
+        # Get role
+        role = Role.query.get(role_id)
+        if not role or role.name == RoleType.ADMIN:
+            flash('Invalid role selected.', 'danger')
+            return render_template('auth/register.html', roles=roles)
+        
+        # Create user
         new_user = User(
             username=username,
             email=email,
-            password_hash=generate_password_hash(password),
             first_name=first_name,
             last_name=last_name,
-            role_id=student_role.id
+            role_id=role_id,
+            is_active=True
         )
+        new_user.set_password(password)
         
         try:
             db.session.add(new_user)
             db.session.commit()
-            flash('Registration successful! You can now login.', 'success')
+            flash('Registration successful! You can now log in.', 'success')
             return redirect(url_for('auth.login'))
         except IntegrityError:
             db.session.rollback()
-            flash('An error occurred while registering your account.', 'danger')
-            
-    return render_template('auth/register.html')
+            flash('An error occurred during registration. Please try again.', 'danger')
+    
+    # Handle GET request (display registration form)
+    return render_template('auth/register.html', roles=roles)
 
 @auth_bp.route('/profile')
 @login_required
@@ -132,26 +147,42 @@ def profile():
 def edit_profile():
     """Edit user profile."""
     if request.method == 'POST':
-        # Update basic info
-        current_user.first_name = request.form.get('first_name', current_user.first_name)
-        current_user.last_name = request.form.get('last_name', current_user.last_name)
-        current_user.email = request.form.get('email', current_user.email)
-        
-        # Update password if provided
+        email = request.form.get('email')
+        first_name = request.form.get('first_name')
+        last_name = request.form.get('last_name')
         current_password = request.form.get('current_password')
         new_password = request.form.get('new_password')
         confirm_password = request.form.get('confirm_password')
         
-        if current_password and new_password:
+        # Validate required fields
+        if not email or not first_name or not last_name:
+            flash('Email, first name, and last name are required.', 'danger')
+            return redirect(url_for('auth.edit_profile'))
+        
+        # Check if email has changed and is already taken
+        if email != current_user.email and User.query.filter_by(email=email).first():
+            flash('Email already in use by another account.', 'danger')
+            return redirect(url_for('auth.edit_profile'))
+        
+        # Update basic information
+        current_user.email = email
+        current_user.first_name = first_name
+        current_user.last_name = last_name
+        
+        # Password change (if requested)
+        if current_password and new_password and confirm_password:
+            # Check if current password is correct
             if not current_user.check_password(current_password):
                 flash('Current password is incorrect.', 'danger')
-                return render_template('auth/edit_profile.html')
-                
+                return redirect(url_for('auth.edit_profile'))
+            
+            # Check if new passwords match
             if new_password != confirm_password:
                 flash('New passwords do not match.', 'danger')
-                return render_template('auth/edit_profile.html')
-                
-            current_user.password_hash = generate_password_hash(new_password)
+                return redirect(url_for('auth.edit_profile'))
+            
+            # Update password
+            current_user.set_password(new_password)
             flash('Password updated successfully.', 'success')
         
         try:
@@ -161,5 +192,5 @@ def edit_profile():
         except IntegrityError:
             db.session.rollback()
             flash('An error occurred while updating your profile.', 'danger')
-            
+    
     return render_template('auth/edit_profile.html')

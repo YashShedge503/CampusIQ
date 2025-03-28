@@ -1,0 +1,339 @@
+{% extends "layout.html" %}
+
+{% block title %}Student Dashboard - College ERP System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold mb-0">Student Dashboard</h1>
+            <p class="lead text-muted">Welcome back, {{ current_user.first_name }}!</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="{{ url_for('student.courses') }}" class="btn btn-primary me-2">
+                <i class="fas fa-book me-2"></i>Browse Courses
+            </a>
+            <a href="{{ url_for('student.assignments') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-tasks me-2"></i>View Assignments
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Content -->
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- Course Progress -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>My Courses</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if course_progress %}
+                        <div class="list-group list-group-flush">
+                            {% for progress in course_progress %}
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between mb-2">
+                                        <h5 class="mb-1">{{ progress.course.code }}: {{ progress.course.title }}</h5>
+                                        <small>{{ progress.completed }}/{{ progress.total }} assignments</small>
+                                    </div>
+                                    <div class="progress mb-2" style="height: 6px;">
+                                        <div class="progress-bar {% if progress.progress >= 75 %}bg-success{% elif progress.progress >= 50 %}bg-info{% elif progress.progress >= 25 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                             role="progressbar" style="width: {{ progress.progress }}%;" 
+                                             aria-valuenow="{{ progress.progress }}" 
+                                             aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <div class="d-flex w-100 justify-content-between align-items-center">
+                                        <small class="text-muted">{{ progress.progress|round }}% complete</small>
+                                        <a href="{{ url_for('courses.view', course_id=progress.course.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye me-1"></i>View
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <div class="mb-3">
+                                <i class="fas fa-book-open fa-3x text-muted"></i>
+                            </div>
+                            <p class="mb-0">You are not enrolled in any courses yet.</p>
+                            <a href="{{ url_for('student.courses') }}" class="btn btn-primary mt-3">Browse Courses</a>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-light text-end">
+                    <a href="{{ url_for('student.courses') }}" class="btn btn-sm btn-outline-primary">View All Courses</a>
+                </div>
+            </div>
+
+            <!-- Upcoming Assignments -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Upcoming Assignments</h5>
+                    <span class="badge bg-primary">{{ upcoming_assignments|length }}</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if upcoming_assignments %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Assignment</th>
+                                        <th>Course</th>
+                                        <th>Due Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for assignment in upcoming_assignments %}
+                                    {% set submission = submission = assignment.submissions|selectattr('student_id', 'equalto', current_user.id)|first %}
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold">{{ assignment.title }}</div>
+                                            <div class="small text-muted">{{ assignment.max_score }} points</div>
+                                        </td>
+                                        <td>{{ assignment.course.code }}</td>
+                                        <td>
+                                            <div>{{ assignment.due_date.strftime('%b %d, %Y') }}</div>
+                                            <small class="text-muted">{{ assignment.due_date.strftime('%I:%M %p') }}</small>
+                                        </td>
+                                        <td>
+                                            {% if submission %}
+                                                <span class="badge bg-success">Submitted</span>
+                                            {% else %}
+                                                {% set days_left = (assignment.due_date - now()).days %}
+                                                {% if days_left <= 1 %}
+                                                    <span class="badge bg-danger">Due Soon</span>
+                                                {% elif days_left <= 3 %}
+                                                    <span class="badge bg-warning">Upcoming</span>
+                                                {% else %}
+                                                    <span class="badge bg-info">Pending</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if submission %}
+                                                <a href="{{ url_for('student.view_submission', submission_id=submission.id) }}" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="fas fa-eye me-1"></i>View
+                                                </a>
+                                            {% else %}
+                                                <a href="{{ url_for('student.submit_assignment', assignment_id=assignment.id) }}" class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-paper-plane me-1"></i>Submit
+                                                </a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <div class="mb-3">
+                                <i class="fas fa-clipboard-check fa-3x text-muted"></i>
+                            </div>
+                            <p class="mb-0">No upcoming assignments at this time.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-light text-end">
+                    <a href="{{ url_for('student.assignments') }}" class="btn btn-sm btn-outline-primary">View All Assignments</a>
+                </div>
+            </div>
+
+            <!-- Recent Submissions -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Recent Submissions</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_submissions %}
+                        <div class="list-group list-group-flush">
+                            {% for submission in recent_submissions %}
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ submission.assignment.title }}</h6>
+                                            <p class="mb-0 small text-muted">
+                                                {{ submission.assignment.course.code }} | 
+                                                Submitted: {{ submission.submission_date.strftime('%b %d, %Y') }}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            {% if submission.status.name == 'GRADED' or submission.status.name == 'RETURNED' %}
+                                                {% if submission.grade %}
+                                                    <span class="badge bg-success">{{ submission.grade.score }}/{{ submission.assignment.max_score }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-success">Graded</span>
+                                                {% endif %}
+                                            {% elif submission.status.name == 'LATE' %}
+                                                <span class="badge bg-warning">Late</span>
+                                            {% else %}
+                                                <span class="badge bg-info">Submitted</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <div class="mb-3">
+                                <i class="fas fa-file-upload fa-3x text-muted"></i>
+                            </div>
+                            <p class="mb-0">You haven't submitted any assignments yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-light text-end">
+                    <a href="{{ url_for('student.submissions') }}" class="btn btn-sm btn-outline-primary">View All Submissions</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Stats -->
+            <div class="row mb-4">
+                <div class="col-md-6 col-lg-12 mb-4">
+                    <div class="card border-0 shadow-sm stat-card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-white-50">Enrolled Courses</h6>
+                                    <h2 class="mb-0">{{ courses|length }}</h2>
+                                </div>
+                                <div class="stat-icon">
+                                    <i class="fas fa-graduation-cap"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-12 mb-4">
+                    <div class="card border-0 shadow-sm stat-card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-white-50">Pending Assignments</h6>
+                                    <h2 class="mb-0">{{ upcoming_assignments|length }}</h2>
+                                </div>
+                                <div class="stat-icon">
+                                    <i class="fas fa-tasks"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-12 mb-4">
+                    <div class="card border-0 shadow-sm stat-card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-white-50">Completed Assignments</h6>
+                                    <h2 class="mb-0">{{ recent_submissions|selectattr('status.name', 'in', ['GRADED', 'RETURNED'])|list|length }}</h2>
+                                </div>
+                                <div class="stat-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Grades -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Recent Grades</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_grades %}
+                        <div class="list-group list-group-flush">
+                            {% for grade in recent_grades %}
+                                {% set percentage = (grade.score / grade.submission.assignment.max_score) * 100 %}
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between mb-2">
+                                        <h6 class="mb-1">{{ grade.submission.assignment.title }}</h6>
+                                        <span class="badge {% if percentage >= 90 %}bg-success{% elif percentage >= 70 %}bg-info{% elif percentage >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ grade.score }}/{{ grade.submission.assignment.max_score }}
+                                        </span>
+                                    </div>
+                                    <div class="progress mb-2" style="height: 6px;">
+                                        <div class="progress-bar {% if percentage >= 90 %}bg-success{% elif percentage >= 70 %}bg-info{% elif percentage >= 60 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                             role="progressbar" style="width: {{ percentage }}%;" 
+                                             aria-valuenow="{{ percentage }}" 
+                                             aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <div class="d-flex w-100 justify-content-between align-items-center">
+                                        <small class="text-muted">
+                                            {{ grade.submission.assignment.course.code }} | 
+                                            Graded: {{ grade.graded_at.strftime('%b %d, %Y') }}
+                                        </small>
+                                        <a href="{{ url_for('student.view_submission', submission_id=grade.submission_id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye me-1"></i>View
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <div class="mb-3">
+                                <i class="fas fa-award fa-3x text-muted"></i>
+                            </div>
+                            <p class="mb-0">You don't have any graded assignments yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-light text-end">
+                    <a href="{{ url_for('analytics.student_dashboard') }}" class="btn btn-sm btn-outline-primary">View Analytics</a>
+                </div>
+            </div>
+
+            <!-- AI Recommendations -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-robot me-2"></i>Personalized Recommendations
+                        <span class="badge badge-ai ms-2">AI</span>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if recommendations %}
+                        <div class="list-group list-group-flush">
+                            {% for recommendation in recommendations %}
+                                <div class="list-group-item">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <i class="fas fa-lightbulb fa-lg text-warning"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-1">{{ recommendation.title }}</h6>
+                                            <p class="mb-0 small">{{ recommendation.description }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <div class="mb-3">
+                                <i class="fas fa-robot fa-3x text-muted"></i>
+                            </div>
+                            <p class="mb-0">Submit more assignments to receive personalized recommendations.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-light text-end">
+                    <a href="{{ url_for('analytics.student_dashboard') }}" class="btn btn-sm btn-outline-primary">View More</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

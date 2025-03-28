@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .st0{fill:#252A37;}
+    .st1{fill:#1E2233;}
+    .st2{fill:#2D3442;}
+    .st3{fill:#3A404F;}
+    .st4{fill:#007BFF;}
+    .st5{fill:#28A745;}
+    .st6{fill:#DC3545;}
+    .st7{fill:#FFC107;}
+    .st8{fill:#FFFFFF;}
+    .st9{fill:#E9ECEF;}
+    .st10{fill:#CED4DA;}
+    .st11{fill:#ADB5BD;}
+    .st12{font-family:'Arial', sans-serif; font-weight:bold;}
+    .st13{font-size:14px;}
+    .st14{font-size:10px;}
+    .anim-pulse {
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    .anim-float {
+      animation: float 6s ease-in-out infinite;
+    }
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-20px); }
+      100% { transform: translateY(0px); }
+    }
+  </style>
+  
+  <!-- Background -->
+  <rect class="st0" width="800" height="600"/>
+  
+  <!-- Main ERP System Representation -->
+  <g class="anim-float">
+    <!-- Central Server -->
+    <rect class="st2" x="350" y="250" width="100" height="150" rx="5"/>
+    <rect class="st3" x="360" y="260" width="80" height="130" rx="3"/>
+    <!-- Server Details -->
+    <circle class="st4" cx="370" cy="270" r="4"/>
+    <circle class="st5" cx="385" cy="270" r="4"/>
+    <circle class="st6" cx="400" cy="270" r="4"/>
+    
+    <!-- Data Visualization -->
+    <rect class="st2" x="370" y="285" width="60" height="40" rx="2"/>
+    <line class="st4" x1="375" y1="300" x2="385" y2="295"/>
+    <line class="st4" x1="385" y1="295" x2="395" y2="310"/>
+    <line class="st4" x1="395" y1="310" x2="405" y2="300"/>
+    <line class="st4" x1="405" y1="300" x2="415" y2="290"/>
+    <line class="st4" x1="415" y1="290" x2="425" y2="305"/>
+    
+    <!-- AI Representation -->
+    <rect class="st2" x="370" y="335" width="60" height="45" rx="2"/>
+    <rect class="st1" x="380" y="345" width="40" height="25" rx="2"/>
+    <text x="400" y="360" class="st8 st12 st14" text-anchor="middle">AI</text>
+  </g>
+  
+  <!-- Connected Devices - Admin -->
+  <g transform="translate(150, 250)">
+    <rect class="st2" x="0" y="0" width="120" height="90" rx="5"/>
+    <rect class="st1" x="10" y="10" width="100" height="60" rx="3"/>
+    <rect class="st6" x="20" y="20" width="80" height="10" rx="2"/>
+    <text x="60" y="28" class="st8 st12 st14" text-anchor="middle">ADMIN</text>
+    <rect class="st8" x="20" y="35" width="80" height="25" rx="2"/>
+    <line class="st0" x1="30" y1="45" x2="90" y2="45"/>
+    <line class="st0" x1="30" y1="50" x2="80" y2="50"/>
+    <line class="st0" x1="30" y1="55" x2="70" y2="55"/>
+    <!-- Connection Line -->
+    <line class="st4" x1="120" y1="45" x2="350" y2="300" stroke-width="2" stroke-dasharray="5,5"/>
+    <circle class="st4 anim-pulse" cx="120" cy="45" r="5"/>
+    <circle class="st4" cx="350" cy="300" r="5"/>
+  </g>
+  
+  <!-- Connected Devices - Faculty -->
+  <g transform="translate(150, 400)">
+    <rect class="st2" x="0" y="0" width="120" height="90" rx="5"/>
+    <rect class="st1" x="10" y="10" width="100" height="60" rx="3"/>
+    <rect class="st5" x="20" y="20" width="80" height="10" rx="2"/>
+    <text x="60" y="28" class="st8 st12 st14" text-anchor="middle">FACULTY</text>
+    <rect class="st8" x="20" y="35" width="80" height="25" rx="2"/>
+    <line class="st0" x1="30" y1="45" x2="90" y2="45"/>
+    <line class="st0" x1="30" y1="50" x2="80" y2="50"/>
+    <line class="st0" x1="30" y1="55" x2="70" y2="55"/>
+    <!-- Connection Line -->
+    <line class="st5" x1="120" y1="45" x2="350" y2="350" stroke-width="2" stroke-dasharray="5,5"/>
+    <circle class="st5 anim-pulse" cx="120" cy="45" r="5"/>
+    <circle class="st5" cx="350" cy="350" r="5"/>
+  </g>
+  
+  <!-- Connected Devices - Student -->
+  <g transform="translate(530, 250)">
+    <rect class="st2" x="0" y="0" width="120" height="90" rx="5"/>
+    <rect class="st1" x="10" y="10" width="100" height="60" rx="3"/>
+    <rect class="st4" x="20" y="20" width="80" height="10" rx="2"/>
+    <text x="60" y="28" class="st8 st12 st14" text-anchor="middle">STUDENT</text>
+    <rect class="st8" x="20" y="35" width="80" height="25" rx="2"/>
+    <line class="st0" x1="30" y1="45" x2="90" y2="45"/>
+    <line class="st0" x1="30" y1="50" x2="80" y2="50"/>
+    <line class="st0" x1="30" y1="55" x2="70" y2="55"/>
+    <!-- Connection Line -->
+    <line class="st4" x1="0" y1="45" x2="450" y2="300" stroke-width="2" stroke-dasharray="5,5"/>
+    <circle class="st4 anim-pulse" cx="0" cy="45" r="5"/>
+    <circle class="st4" cx="450" cy="300" r="5"/>
+  </g>
+  
+  <!-- Connected Devices - Student Mobile -->
+  <g transform="translate(530, 400)">
+    <rect class="st2" x="0" y="0" width="70" height="120" rx="10"/>
+    <rect class="st1" x="5" y="10" width="60" height="100" rx="3"/>
+    <rect class="st4" x="10" y="15" width="50" height="10" rx="2"/>
+    <text x="35" y="23" class="st8 st12 st14" text-anchor="middle">APP</text>
+    <rect class="st8" x="10" y="30" width="50" height="70" rx="2"/>
+    <line class="st0" x1="15" y1="40" x2="55" y2="40"/>
+    <line class="st0" x1="15" y1="50" x2="45" y2="50"/>
+    <line class="st0" x1="15" y1="60" x2="50" y2="60"/>
+    <line class="st0" x1="15" y1="70" x2="40" y2="70"/>
+    <line class="st0" x1="15" y1="80" x2="55" y2="80"/>
+    <line class="st0" x1="15" y1="90" x2="45" y2="90"/>
+    <!-- Connection Line -->
+    <line class="st7" x1="0" y1="60" x2="450" y2="350" stroke-width="2" stroke-dasharray="5,5"/>
+    <circle class="st7 anim-pulse" cx="0" cy="60" r="5"/>
+    <circle class="st7" cx="450" cy="350" r="5"/>
+  </g>
+  
+  <!-- Data Flow Visualization -->
+  <g>
+    <!-- Data Packets -->
+    <circle class="st4" cx="235" cy="275" r="3">
+      <animate attributeName="cx" from="235" to="350" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="cy" from="275" to="300" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle class="st5" cx="235" cy="423" r="3">
+      <animate attributeName="cx" from="235" to="350" dur="4s" repeatCount="indefinite"/>
+      <animate attributeName="cy" from="423" to="350" dur="4s" repeatCount="indefinite"/>
+    </circle>
+    <circle class="st4" cx="565" cy="275" r="3">
+      <animate attributeName="cx" from="565" to="450" dur="3.5s" repeatCount="indefinite"/>
+      <animate attributeName="cy" from="275" to="300" dur="3.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle class="st7" cx="565" cy="445" r="3">
+      <animate attributeName="cx" from="565" to="450" dur="2.5s" repeatCount="indefinite"/>
+      <animate attributeName="cy" from="445" to="350" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  
+  <!-- Title Text -->
+  <text x="400" y="100" class="st8 st12" font-size="30" text-anchor="middle">College ERP System</text>
+  <text x="400" y="130" class="st4 st12" font-size="16" text-anchor="middle">AI-Driven Educational Management</text>
+  
+  <!-- Footer Labels -->
+  <text x="235" y="200" class="st11 st12 st13" text-anchor="middle">Administration</text>
+  <text x="400" y="200" class="st11 st12 st13" text-anchor="middle">Core System</text>
+  <text x="565" y="200" class="st11 st12 st13" text-anchor="middle">Students</text>
+  
+  <!-- AI Module Labels -->
+  <text x="400" y="535" class="st4 st12 st13" text-anchor="middle">AI-POWERED ANALYTICS</text>
+  
+  <!-- Feature Icons -->
+  <g transform="translate(150, 500)">
+    <circle class="st2" cx="0" cy="0" r="15"/>
+    <text x="0" y="5" class="st11 st12" font-size="16" text-anchor="middle">1</text>
+    <text x="30" y="5" class="st9 st12 st14">User Management</text>
+  </g>
+  
+  <g transform="translate(300, 500)">
+    <circle class="st2" cx="0" cy="0" r="15"/>
+    <text x="0" y="5" class="st11 st12" font-size="16" text-anchor="middle">2</text>
+    <text x="30" y="5" class="st9 st12 st14">Course Management</text>
+  </g>
+  
+  <g transform="translate(450, 500)">
+    <circle class="st2" cx="0" cy="0" r="15"/>
+    <text x="0" y="5" class="st11 st12" font-size="16" text-anchor="middle">3</text>
+    <text x="30" y="5" class="st9 st12 st14">AI Assessment</text>
+  </g>
+  
+  <g transform="translate(600, 500)">
+    <circle class="st2" cx="0" cy="0" r="15"/>
+    <text x="0" y="5" class="st11 st12" font-size="16" text-anchor="middle">4</text>
+    <text x="30" y="5" class="st9 st12 st14">Analytics Dashboard</text>
+  </g>
+</svg>

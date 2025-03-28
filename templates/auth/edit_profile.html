@@ -3,74 +3,117 @@
 {% block title %}Edit Profile - College ERP System{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <div class="row">
-        <div class="col-lg-8 mx-auto">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-light">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-user-edit me-2"></i>Edit Profile</h5>
-                        <a href="{{ url_for('auth.profile') }}" class="btn btn-sm btn-outline-secondary">
-                            <i class="fas fa-arrow-left me-1"></i>Back to Profile
-                        </a>
+<div class="row">
+    <div class="col-12 mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('auth.index') }}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('auth.profile') }}">My Profile</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Edit Profile</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card bg-dark shadow">
+            <div class="card-header">
+                <h4 class="mb-0">Edit Profile</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('auth.edit_profile') }}">
+                    <h5 class="mb-3">Personal Information</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="first_name" class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="first_name" name="first_name" value="{{ current_user.first_name }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="last_name" class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="last_name" name="last_name" value="{{ current_user.last_name }}" required>
+                        </div>
                     </div>
-                </div>
-                <div class="card-body">
-                    <form method="POST" action="{{ url_for('auth.edit_profile') }}">
-                        <h6 class="text-muted mb-3">Personal Information</h6>
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="first_name" class="form-label">First Name</label>
-                                    <input type="text" class="form-control" id="first_name" name="first_name" value="{{ current_user.first_name }}" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="last_name" class="form-label">Last Name</label>
-                                    <input type="text" class="form-control" id="last_name" name="last_name" value="{{ current_user.last_name }}" required>
-                                </div>
-                            </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="email" name="email" value="{{ current_user.email }}" required>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <h5 class="mb-3">Change Password</h5>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Leave the password fields empty if you don't want to change your password.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="current_password" class="form-label">Current Password</label>
+                        <input type="password" class="form-control" id="current_password" name="current_password" placeholder="Enter your current password">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="new_password" class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="new_password" name="new_password" placeholder="Enter a new password">
+                            <div class="form-text">Password should be at least 8 characters long.</div>
                         </div>
-                        
-                        <div class="mb-4">
-                            <label for="email" class="form-label">Email Address</label>
-                            <input type="email" class="form-control" id="email" name="email" value="{{ current_user.email }}" required>
+                        <div class="col-md-6 mb-3">
+                            <label for="confirm_password" class="form-label">Confirm New Password</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Confirm your new password">
                         </div>
-                        
-                        <hr class="my-4">
-                        
-                        <h6 class="text-muted mb-3">Change Password</h6>
-                        <div class="mb-3">
-                            <label for="current_password" class="form-label">Current Password</label>
-                            <input type="password" class="form-control" id="current_password" name="current_password">
-                            <div class="form-text">Leave blank if you don't want to change your password.</div>
-                        </div>
-                        
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="new_password" class="form-label">New Password</label>
-                                    <input type="password" class="form-control" id="new_password" name="new_password">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="confirm_password" class="form-label">Confirm New Password</label>
-                                    <input type="password" class="form-control" id="confirm_password" name="confirm_password">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i>Save Changes
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Client-side validation
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        const newPasswordInput = document.getElementById('new_password');
+        const confirmPasswordInput = document.getElementById('confirm_password');
+        const currentPasswordInput = document.getElementById('current_password');
+        
+        form.addEventListener('submit', function(e) {
+            // If any password field is filled, all password fields must be filled
+            if (newPasswordInput.value || confirmPasswordInput.value || currentPasswordInput.value) {
+                if (!newPasswordInput.value || !confirmPasswordInput.value || !currentPasswordInput.value) {
+                    e.preventDefault();
+                    alert('All password fields are required when changing your password.');
+                    return;
+                }
+                
+                // Check if passwords match
+                if (newPasswordInput.value !== confirmPasswordInput.value) {
+                    e.preventDefault();
+                    alert('New passwords do not match.');
+                    return;
+                }
+                
+                // Check password length
+                if (newPasswordInput.value.length < 8) {
+                    e.preventDefault();
+                    alert('Password must be at least 8 characters long.');
+                    return;
+                }
+            }
+        });
+    });
+</script>
 {% endblock %}

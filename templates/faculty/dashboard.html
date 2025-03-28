@@ -1,0 +1,282 @@
+{% extends "layout.html" %}
+
+{% block title %}Faculty Dashboard - College ERP System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold mb-0">Faculty Dashboard</h1>
+            <p class="lead text-muted">Welcome back, {{ current_user.first_name }}!</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="{{ url_for('faculty.assignments') }}" class="btn btn-primary me-2">
+                <i class="fas fa-tasks me-2"></i>View Assignments
+            </a>
+            <a href="{{ url_for('faculty.submissions') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-file-alt me-2"></i>View Submissions
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Content -->
+    <div class="row">
+        <!-- Course Stats -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>My Courses</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if course_stats %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Course</th>
+                                        <th>Students</th>
+                                        <th>Assignments</th>
+                                        <th>Pending</th>
+                                        <th>Progress</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for stat in course_stats %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge bg-primary rounded-circle p-2 me-2">
+                                                    <i class="fas fa-book"></i>
+                                                </span>
+                                                <div>
+                                                    <div class="fw-bold">{{ stat.course.code }}</div>
+                                                    <div class="small text-muted">{{ stat.course.title }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ stat.student_count }}</td>
+                                        <td>{{ stat.assignment_count }}</td>
+                                        <td>
+                                            {% if stat.pending_submissions > 0 %}
+                                                <span class="badge bg-warning">{{ stat.pending_submissions }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">0</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="progress" style="height: 6px; width: 100px;">
+                                                {% if stat.total_submissions > 0 %}
+                                                    {% set progress = (stat.graded_submissions / stat.total_submissions) * 100 %}
+                                                {% else %}
+                                                    {% set progress = 100 %}
+                                                {% endif %}
+                                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ progress }}%"></div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('courses.view', course_id=stat.course.id) }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <div class="mb-3">
+                                <i class="fas fa-book-open fa-3x text-muted"></i>
+                            </div>
+                            <p class="mb-0">You are not teaching any courses yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-light text-end">
+                    <a href="{{ url_for('courses.index') }}" class="btn btn-sm btn-outline-primary">View All Courses</a>
+                </div>
+            </div>
+
+            <!-- Submissions to Grade -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Recent Submissions to Grade</h5>
+                    <span class="badge bg-primary">{{ submissions|length }}</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if submissions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Assignment</th>
+                                        <th>Course</th>
+                                        <th>Submitted</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for submission in submissions %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="fw-bold">{{ submission.student.get_full_name() }}</div>
+                                                    <div class="small text-muted">{{ submission.student.username }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ submission.assignment.title }}</td>
+                                        <td>{{ submission.assignment.course.code }}</td>
+                                        <td>{{ submission.submission_date.strftime('%b %d, %Y') }}</td>
+                                        <td>
+                                            {% if submission.is_late() %}
+                                                <span class="badge bg-warning">Late</span>
+                                            {% else %}
+                                                <span class="badge bg-success">On Time</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('faculty.grade_submission', submission_id=submission.id) }}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-check-square me-1"></i>Grade
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <div class="mb-3">
+                                <i class="fas fa-clipboard-check fa-3x text-muted"></i>
+                            </div>
+                            <p class="mb-0">No submissions to grade at this time.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-light text-end">
+                    <a href="{{ url_for('faculty.submissions') }}" class="btn btn-sm btn-outline-primary">View All Submissions</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Stats and Upcoming -->
+        <div class="col-lg-4">
+            <!-- Quick Stats -->
+            <div class="row mb-4">
+                <div class="col-md-6 col-lg-12 mb-4">
+                    <div class="card border-0 shadow-sm stat-card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-white-50">Courses</h6>
+                                    <h2 class="mb-0">{{ courses|length }}</h2>
+                                </div>
+                                <div class="stat-icon">
+                                    <i class="fas fa-graduation-cap"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-12 mb-4">
+                    <div class="card border-0 shadow-sm stat-card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-white-50">Active Assignments</h6>
+                                    <h2 class="mb-0">{{ assignments|length }}</h2>
+                                </div>
+                                <div class="stat-icon">
+                                    <i class="fas fa-tasks"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-12 mb-4">
+                    <div class="card border-0 shadow-sm stat-card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-white-50">Total Students</h6>
+                                    {% set total_students = 0 %}
+                                    {% for stat in course_stats %}
+                                        {% set total_students = total_students + stat.student_count %}
+                                    {% endfor %}
+                                    <h2 class="mb-0">{{ total_students }}</h2>
+                                </div>
+                                <div class="stat-icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming Deadlines -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Upcoming Deadlines</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if upcoming_deadlines %}
+                        <div class="list-group list-group-flush">
+                            {% for assignment in upcoming_deadlines %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ assignment.title }}</h6>
+                                            <p class="mb-0 small text-muted">{{ assignment.course.code }}</p>
+                                        </div>
+                                        <span class="badge {% if (assignment.due_date - today).days <= 1 %}bg-danger{% elif (assignment.due_date - today).days <= 3 %}bg-warning{% else %}bg-info{% endif %}">
+                                            {{ assignment.due_date.strftime('%b %d') }}
+                                        </span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <div class="mb-3">
+                                <i class="fas fa-calendar-check fa-3x text-muted"></i>
+                            </div>
+                            <p class="mb-0">No upcoming deadlines this week.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-light text-end">
+                    <a href="{{ url_for('faculty.assignments') }}" class="btn btn-sm btn-outline-primary">Manage Assignments</a>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('faculty.new_assignment') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-plus-circle me-2"></i>Create Assignment
+                        </a>
+                        <a href="{{ url_for('analytics.faculty_dashboard') }}" class="btn btn-outline-info">
+                            <i class="fas fa-chart-line me-2"></i>View Analytics
+                        </a>
+                        <a href="{{ url_for('materials.index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-file-upload me-2"></i>Upload Materials
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

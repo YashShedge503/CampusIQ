@@ -1,21 +1,25 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, request, abort, jsonify
 from flask_login import login_required, current_user
+from werkzeug.utils import secure_filename
+from sqlalchemy.exc import IntegrityError
 from functools import wraps
 from datetime import datetime, timedelta
+import os
+import json
+
 from app import db
-from models import User, Course, Assignment, Submission, Grade, Material, Schedule, RoleType, AssignmentStatus, SubmissionStatus
-from utils import save_file, parse_date, calculate_course_analytics, generate_schedule_suggestions
-from ai_services import analyze_submission
+from models import User, RoleType, Course, Assignment, Submission, Grade, SubmissionStatus, AssignmentStatus
+from utils import allowed_file, save_file, parse_date
+from ai_services import analyze_submission, predict_student_performance
 
 faculty_bp = Blueprint('faculty', __name__)
 
-# Faculty authorization decorator
+# Faculty required decorator
 def faculty_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated or not current_user.is_faculty():
-            flash("Faculty area only.", "danger")
-            return redirect(url_for('auth.login'))
+            abort(403)
         return f(*args, **kwargs)
     return decorated_function
 
@@ -23,153 +27,165 @@ def faculty_required(f):
 @login_required
 @faculty_required
 def dashboard():
-    # Get courses taught by the faculty member
+    """Faculty dashboard page."""
+    # Get current faculty's courses
     courses = Course.query.filter_by(faculty_id=current_user.id).all()
-    course_count = len(courses)
-    
-    # Get student counts across all courses
-    student_counts = {}
-    total_students = 0
-    for course in courses:
-        student_count = len(course.students)
-        student_counts[course.id] = student_count
-        total_students += student_count
     
     # Get recent assignments
-    recent_assignments = Assignment.query.join(Course).filter(
-        Course.faculty_id == current_user.id
-    ).order_by(Assignment.created_at.desc()).limit(5).all()
+    assignments = Assignment.query.join(Course).filter(
+        Course.faculty_id == current_user.id,
+        Assignment.status == AssignmentStatus.PUBLISHED
+    ).order_by(Assignment.due_date.desc()).limit(5).all()
     
-    # Get pending submissions that need grading
-    pending_submissions = Submission.query.join(Assignment).join(Course).filter(
+    # Get recent submissions to grade
+    submissions = Submission.query.join(Assignment).join(Course).filter(
         Course.faculty_id == current_user.id,
         Submission.status == SubmissionStatus.SUBMITTED
     ).order_by(Submission.submission_date.desc()).limit(10).all()
     
+    # Get course statistics
+    course_stats = []
+    for course in courses:
+        # Get number of students
+        student_count = len(course.students)
+        
+        # Get assignment count
+        assignment_count = Assignment.query.filter_by(course_id=course.id).count()
+        
+        # Get submission statistics
+        total_submissions = Submission.query.join(Assignment).filter(
+            Assignment.course_id == course.id
+        ).count()
+        
+        graded_submissions = Submission.query.join(Assignment).filter(
+            Assignment.course_id == course.id,
+            Submission.status.in_([SubmissionStatus.GRADED, SubmissionStatus.RETURNED])
+        ).count()
+        
+        pending_submissions = Submission.query.join(Assignment).filter(
+            Assignment.course_id == course.id,
+            Submission.status == SubmissionStatus.SUBMITTED
+        ).count()
+        
+        course_stats.append({
+            'course': course,
+            'student_count': student_count,
+            'assignment_count': assignment_count,
+            'total_submissions': total_submissions,
+            'graded_submissions': graded_submissions,
+            'pending_submissions': pending_submissions
+        })
+    
     # Get upcoming deadlines
+    today = datetime.utcnow()
     upcoming_deadlines = Assignment.query.join(Course).filter(
         Course.faculty_id == current_user.id,
-        Assignment.due_date > datetime.now(),
-        Assignment.due_date <= datetime.now() + timedelta(days=14)
-    ).order_by(Assignment.due_date).limit(5).all()
+        Assignment.due_date > today,
+        Assignment.due_date <= today + timedelta(days=7)
+    ).order_by(Assignment.due_date).all()
     
-    # Get upcoming schedule items
-    upcoming_schedule = Schedule.query.filter(
-        Schedule.owner_id == current_user.id,
-        Schedule.start_time > datetime.now(),
-        Schedule.start_time <= datetime.now() + timedelta(days=7)
-    ).order_by(Schedule.start_time).limit(5).all()
-    
-    # Get schedule suggestions
-    schedule_suggestions = generate_schedule_suggestions(current_user.id)
-    
-    return render_template('dashboard/faculty.html',
-                           courses=courses,
-                           course_count=course_count,
-                           student_counts=student_counts,
-                           total_students=total_students,
-                           recent_assignments=recent_assignments,
-                           pending_submissions=pending_submissions,
-                           upcoming_deadlines=upcoming_deadlines,
-                           upcoming_schedule=upcoming_schedule,
-                           schedule_suggestions=schedule_suggestions)
+    return render_template('faculty/dashboard.html', 
+                          courses=courses,
+                          assignments=assignments,
+                          submissions=submissions,
+                          course_stats=course_stats,
+                          upcoming_deadlines=upcoming_deadlines)
 
 @faculty_bp.route('/assignments')
 @login_required
 @faculty_required
 def assignments():
+    """View all assignments for faculty's courses."""
     # Get filter parameters
     course_id = request.args.get('course_id', type=int)
     status = request.args.get('status')
+    search = request.args.get('search', '')
     
-    # Base query
+    # Filter assignments
     query = Assignment.query.join(Course).filter(Course.faculty_id == current_user.id)
     
-    # Apply filters
     if course_id:
         query = query.filter(Assignment.course_id == course_id)
     
     if status:
-        try:
-            status_enum = AssignmentStatus[status.upper()]
-            query = query.filter(Assignment.status == status_enum)
-        except (KeyError, ValueError):
-            # Invalid status, ignore this filter
-            pass
+        query = query.filter(Assignment.status == AssignmentStatus[status.upper()])
     
-    # Get all courses for the filter dropdown
-    courses = Course.query.filter_by(faculty_id=current_user.id).all()
+    if search:
+        query = query.filter(Assignment.title.ilike(f'%{search}%'))
     
-    # Get paginated results
+    # Get assignments with pagination
     page = request.args.get('page', 1, type=int)
     per_page = 10
     assignments = query.order_by(Assignment.due_date.desc()).paginate(page=page, per_page=per_page)
     
+    # Get courses for filter options
+    courses = Course.query.filter_by(faculty_id=current_user.id).all()
+    
     return render_template('faculty/assignments.html', 
-                           assignments=assignments,
-                           courses=courses,
-                           current_course_id=course_id,
-                           current_status=status)
+                          assignments=assignments, 
+                          courses=courses, 
+                          current_course_id=course_id,
+                          current_status=status,
+                          search=search)
 
 @faculty_bp.route('/assignments/new', methods=['GET', 'POST'])
 @login_required
 @faculty_required
 def new_assignment():
-    # Get all courses taught by the faculty
-    courses = Course.query.filter_by(faculty_id=current_user.id).all()
-    
+    """Create a new assignment."""
     if request.method == 'POST':
         title = request.form.get('title')
         description = request.form.get('description')
         course_id = request.form.get('course_id')
         due_date_str = request.form.get('due_date')
-        max_score = request.form.get('max_score')
-        weight = request.form.get('weight')
-        status = request.form.get('status')
-        
-        # Basic validation
-        error = None
-        if not title or not course_id or not due_date_str or not max_score:
-            error = 'Required fields cannot be empty.'
+        max_score = request.form.get('max_score', 100, type=float)
+        weight = request.form.get('weight', 1.0, type=float)
+        status_str = request.form.get('status', 'DRAFT')
         
         # Parse due date
         due_date = parse_date(due_date_str)
         if not due_date:
-            error = 'Invalid due date format.'
+            flash('Invalid due date format.', 'danger')
+            return redirect(url_for('faculty.new_assignment'))
         
-        # Validate course
-        course = Course.query.get(course_id)
-        if not course or course.faculty_id != current_user.id:
-            error = 'Invalid course selected.'
+        # Validate input
+        if not title or not description or not course_id:
+            flash('Title, description, and course are required.', 'danger')
+            return redirect(url_for('faculty.new_assignment'))
+            
+        # Verify course belongs to faculty
+        course = Course.query.filter_by(id=course_id, faculty_id=current_user.id).first()
+        if not course:
+            flash('Invalid course selection.', 'danger')
+            return redirect(url_for('faculty.new_assignment'))
         
-        if error:
-            flash(error, 'danger')
-        else:
-            # Get assignment status
-            try:
-                status_enum = AssignmentStatus[status.upper()]
-            except (KeyError, ValueError):
-                status_enum = AssignmentStatus.DRAFT
+        # Create new assignment
+        status = AssignmentStatus[status_str]
+        new_assignment = Assignment(
+            title=title,
+            description=description,
+            course_id=course_id,
+            due_date=due_date,
+            max_score=max_score,
+            weight=weight,
+            status=status
+        )
+        
+        try:
+            db.session.add(new_assignment)
+            db.session.commit()
+            flash(f'Assignment "{title}" created successfully.', 'success')
             
-            # Create new assignment
-            new_assignment = Assignment(
-                title=title,
-                description=description,
-                course_id=course_id,
-                due_date=due_date,
-                max_score=float(max_score),
-                weight=float(weight) if weight else 1.0,
-                status=status_enum
-            )
-            
-            try:
-                db.session.add(new_assignment)
-                db.session.commit()
-                flash('Assignment created successfully!', 'success')
-                return redirect(url_for('faculty.assignments'))
-            except Exception as e:
-                db.session.rollback()
-                flash(f'An error occurred: {str(e)}', 'danger')
+            if status == AssignmentStatus.PUBLISHED:
+                flash('Assignment published and visible to students.', 'info')
+                
+            return redirect(url_for('faculty.assignments'))
+        except IntegrityError:
+            db.session.rollback()
+            flash('An error occurred while creating the assignment.', 'danger')
+    
+    # Get courses for the form
+    courses = Course.query.filter_by(faculty_id=current_user.id).all()
     
     return render_template('faculty/new_assignment.html', courses=courses)
 
@@ -177,227 +193,344 @@ def new_assignment():
 @login_required
 @faculty_required
 def edit_assignment(assignment_id):
+    """Edit an existing assignment."""
+    # Get the assignment
     assignment = Assignment.query.join(Course).filter(
         Assignment.id == assignment_id,
         Course.faculty_id == current_user.id
     ).first_or_404()
-    
-    courses = Course.query.filter_by(faculty_id=current_user.id).all()
     
     if request.method == 'POST':
         title = request.form.get('title')
         description = request.form.get('description')
         course_id = request.form.get('course_id')
         due_date_str = request.form.get('due_date')
-        max_score = request.form.get('max_score')
-        weight = request.form.get('weight')
-        status = request.form.get('status')
-        
-        # Basic validation
-        error = None
-        if not title or not course_id or not due_date_str or not max_score:
-            error = 'Required fields cannot be empty.'
+        max_score = request.form.get('max_score', 100, type=float)
+        weight = request.form.get('weight', 1.0, type=float)
+        status_str = request.form.get('status', 'DRAFT')
         
         # Parse due date
         due_date = parse_date(due_date_str)
         if not due_date:
-            error = 'Invalid due date format.'
+            flash('Invalid due date format.', 'danger')
+            return redirect(url_for('faculty.edit_assignment', assignment_id=assignment_id))
         
-        # Validate course
-        course = Course.query.get(course_id)
-        if not course or course.faculty_id != current_user.id:
-            error = 'Invalid course selected.'
+        # Validate input
+        if not title or not description or not course_id:
+            flash('Title, description, and course are required.', 'danger')
+            return redirect(url_for('faculty.edit_assignment', assignment_id=assignment_id))
+            
+        # Verify course belongs to faculty
+        course = Course.query.filter_by(id=course_id, faculty_id=current_user.id).first()
+        if not course:
+            flash('Invalid course selection.', 'danger')
+            return redirect(url_for('faculty.edit_assignment', assignment_id=assignment_id))
         
-        if error:
-            flash(error, 'danger')
-        else:
-            # Get assignment status
-            try:
-                status_enum = AssignmentStatus[status.upper()]
-            except (KeyError, ValueError):
-                status_enum = AssignmentStatus.DRAFT
+        # Update assignment
+        assignment.title = title
+        assignment.description = description
+        assignment.course_id = course_id
+        assignment.due_date = due_date
+        assignment.max_score = max_score
+        assignment.weight = weight
+        assignment.status = AssignmentStatus[status_str]
+        
+        try:
+            db.session.commit()
+            flash(f'Assignment "{title}" updated successfully.', 'success')
             
-            # Update assignment
-            assignment.title = title
-            assignment.description = description
-            assignment.course_id = course_id
-            assignment.due_date = due_date
-            assignment.max_score = float(max_score)
-            assignment.weight = float(weight) if weight else 1.0
-            assignment.status = status_enum
-            
-            try:
-                db.session.commit()
-                flash('Assignment updated successfully!', 'success')
-                return redirect(url_for('faculty.assignments'))
-            except Exception as e:
-                db.session.rollback()
-                flash(f'An error occurred: {str(e)}', 'danger')
+            if assignment.status == AssignmentStatus.PUBLISHED:
+                flash('Assignment is now published and visible to students.', 'info')
+                
+            return redirect(url_for('faculty.assignments'))
+        except IntegrityError:
+            db.session.rollback()
+            flash('An error occurred while updating the assignment.', 'danger')
+    
+    # Get courses for the form
+    courses = Course.query.filter_by(faculty_id=current_user.id).all()
     
     return render_template('faculty/edit_assignment.html', 
-                           assignment=assignment,
-                           courses=courses)
+                          assignment=assignment, 
+                          courses=courses)
 
 @faculty_bp.route('/submissions')
 @login_required
 @faculty_required
 def submissions():
+    """View all submissions for faculty's assignments."""
     # Get filter parameters
+    course_id = request.args.get('course_id', type=int)
     assignment_id = request.args.get('assignment_id', type=int)
     status = request.args.get('status')
+    student_id = request.args.get('student_id', type=int)
     
-    # Base query
-    query = Submission.query.join(Assignment).join(Course).filter(Course.faculty_id == current_user.id)
+    # Base query for submissions
+    query = Submission.query.join(Assignment).join(Course).filter(
+        Course.faculty_id == current_user.id
+    )
     
     # Apply filters
+    if course_id:
+        query = query.filter(Course.id == course_id)
+        
+        # Get assignments for this course for the dropdown
+        assignments = Assignment.query.filter_by(course_id=course_id).all()
+    else:
+        assignments = []
+    
     if assignment_id:
-        query = query.filter(Submission.assignment_id == assignment_id)
+        query = query.filter(Assignment.id == assignment_id)
     
     if status:
-        try:
-            status_enum = SubmissionStatus[status.upper()]
-            query = query.filter(Submission.status == status_enum)
-        except (KeyError, ValueError):
-            # Invalid status, ignore this filter
-            pass
+        query = query.filter(Submission.status == SubmissionStatus[status.upper()])
     
-    # Get all assignments for the filter dropdown
-    assignments = Assignment.query.join(Course).filter(Course.faculty_id == current_user.id).all()
+    if student_id:
+        query = query.filter(Submission.student_id == student_id)
     
-    # Get paginated results
+    # Get submissions with pagination
     page = request.args.get('page', 1, type=int)
     per_page = 10
     submissions = query.order_by(Submission.submission_date.desc()).paginate(page=page, per_page=per_page)
     
+    # Get courses for filter options
+    courses = Course.query.filter_by(faculty_id=current_user.id).all()
+    
+    # Get students if a course is selected
+    if course_id:
+        course = Course.query.get_or_404(course_id)
+        students = course.students
+    else:
+        students = []
+    
     return render_template('faculty/submissions.html', 
-                           submissions=submissions,
-                           assignments=assignments,
-                           current_assignment_id=assignment_id,
-                           current_status=status)
+                          submissions=submissions,
+                          courses=courses,
+                          assignments=assignments,
+                          students=students,
+                          current_course_id=course_id,
+                          current_assignment_id=assignment_id,
+                          current_status=status,
+                          current_student_id=student_id)
 
 @faculty_bp.route('/submissions/<int:submission_id>/grade', methods=['GET', 'POST'])
 @login_required
 @faculty_required
 def grade_submission(submission_id):
+    """Grade a student submission."""
+    # Get the submission
     submission = Submission.query.join(Assignment).join(Course).filter(
         Submission.id == submission_id,
         Course.faculty_id == current_user.id
     ).first_or_404()
     
     # Check if already graded
-    grade = Grade.query.filter_by(submission_id=submission_id).first()
+    existing_grade = Grade.query.filter_by(submission_id=submission_id).first()
     
     if request.method == 'POST':
-        score = request.form.get('score')
+        score = request.form.get('score', type=float)
         feedback = request.form.get('feedback')
-        use_ai_suggestion = 'use_ai_suggestion' in request.form
         
-        # Basic validation
-        error = None
-        if not score:
-            error = 'Score is required.'
+        # Validate input
+        if score is None:
+            flash('Score is required.', 'danger')
+            return redirect(url_for('faculty.grade_submission', submission_id=submission_id))
+            
+        if score < 0 or score > submission.assignment.max_score:
+            flash(f'Score must be between 0 and {submission.assignment.max_score}.', 'danger')
+            return redirect(url_for('faculty.grade_submission', submission_id=submission_id))
         
-        if error:
-            flash(error, 'danger')
+        # Create or update grade
+        if existing_grade:
+            existing_grade.score = score
+            existing_grade.feedback = feedback
+            existing_grade.graded_by = current_user.id
+            existing_grade.graded_at = datetime.utcnow()
         else:
-            if grade:
-                # Update existing grade
-                grade.score = float(score)
-                grade.feedback = feedback
-                grade.graded_by = current_user.id
-                grade.graded_at = datetime.now()
-            else:
-                # Create new grade
-                grade = Grade(
-                    submission_id=submission_id,
-                    score=float(score),
-                    feedback=feedback,
-                    graded_by=current_user.id
-                )
-                db.session.add(grade)
-            
-            # Update submission status
-            submission.status = SubmissionStatus.GRADED
-            
-            try:
-                db.session.commit()
-                flash('Submission graded successfully!', 'success')
-                return redirect(url_for('faculty.submissions'))
-            except Exception as e:
-                db.session.rollback()
-                flash(f'An error occurred: {str(e)}', 'danger')
-    
-    # Generate AI suggestions if not already available
-    ai_suggestion = None
-    if grade and grade.ai_score is not None:
-        ai_suggestion = {
-            'score': grade.ai_score,
-            'feedback': grade.ai_feedback,
-            'confidence': grade.ai_confidence
-        }
-    else:
-        # Get assignment instructions for context
-        assignment = submission.assignment
-        
-        if submission.content:
-            # Analyze the submission content
-            analysis = analyze_submission(
-                submission.content,
-                assignment.description
+            new_grade = Grade(
+                submission_id=submission_id,
+                score=score,
+                feedback=feedback,
+                graded_by=current_user.id
             )
-            
-            if analysis and analysis['score_recommendation'] is not None:
-                ai_suggestion = {
-                    'score': analysis['score_recommendation'],
-                    'feedback': analysis['feedback'],
-                    'confidence': analysis['confidence'],
-                    'key_points': analysis.get('key_points', []),
-                    'improvement_areas': analysis.get('improvement_areas', [])
-                }
-                
-                # Store AI suggestion in database
-                if grade:
-                    grade.ai_score = analysis['score_recommendation']
-                    grade.ai_feedback = analysis['feedback']
-                    grade.ai_confidence = analysis['confidence']
-                    db.session.commit()
+            db.session.add(new_grade)
+        
+        # Update submission status
+        submission.status = SubmissionStatus.GRADED
+        
+        try:
+            db.session.commit()
+            flash('Submission graded successfully.', 'success')
+            return redirect(url_for('faculty.submissions'))
+        except IntegrityError:
+            db.session.rollback()
+            flash('An error occurred while grading the submission.', 'danger')
     
+    # Get AI analysis if available
+    ai_analysis = None
+    if submission.content:
+        try:
+            ai_analysis = analyze_submission(
+                submission.content, 
+                submission.assignment.description
+            )
+        except Exception as e:
+            flash(f'AI analysis error: {str(e)}', 'warning')
+            
     return render_template('faculty/grade_submission.html', 
-                           submission=submission,
-                           grade=grade,
-                           ai_suggestion=ai_suggestion)
+                          submission=submission,
+                          existing_grade=existing_grade,
+                          ai_analysis=ai_analysis)
 
 @faculty_bp.route('/analytics')
 @login_required
 @faculty_required
 def analytics():
-    # Get courses taught by the faculty
+    """Analytics dashboard for faculty."""
+    # Get courses taught by this faculty
     courses = Course.query.filter_by(faculty_id=current_user.id).all()
     
-    # Get selected course ID from query params
+    # Get selected course
     course_id = request.args.get('course_id', type=int)
-    
-    course_analytics = None
     if course_id:
-        course = Course.query.get(course_id)
-        if course and course.faculty_id == current_user.id:
-            course_analytics = calculate_course_analytics(course_id)
+        course = Course.query.filter_by(id=course_id, faculty_id=current_user.id).first_or_404()
+    elif courses:
+        course = courses[0]
+    else:
+        course = None
     
-    return render_template('faculty/analytics.html',
-                           courses=courses,
-                           selected_course_id=course_id,
-                           course_analytics=course_analytics)
+    # Initialize analytics data
+    analytics_data = {
+        'assignment_completion': None,
+        'grade_distribution': None,
+        'student_performance': None,
+        'submission_timing': None
+    }
+    
+    if course:
+        # Get assignments for this course
+        assignments = Assignment.query.filter_by(course_id=course.id).all()
+        
+        # Assignment completion rate
+        assignment_data = []
+        for assignment in assignments:
+            total_students = len(course.students)
+            submitted = Submission.query.filter_by(assignment_id=assignment.id).count()
+            
+            if total_students > 0:
+                completion_rate = (submitted / total_students) * 100
+            else:
+                completion_rate = 0
+                
+            assignment_data.append({
+                'name': assignment.title,
+                'completion_rate': completion_rate
+            })
+        
+        analytics_data['assignment_completion'] = assignment_data
+        
+        # Grade distribution
+        grade_distribution = {
+            'A': 0,  # 90-100%
+            'B': 0,  # 80-89%
+            'C': 0,  # 70-79%
+            'D': 0,  # 60-69%
+            'F': 0   # <60%
+        }
+        
+        grades = Grade.query.join(Submission).join(Assignment).filter(
+            Assignment.course_id == course.id
+        ).all()
+        
+        for grade in grades:
+            percentage = (grade.score / grade.submission.assignment.max_score) * 100
+            
+            if percentage >= 90:
+                grade_distribution['A'] += 1
+            elif percentage >= 80:
+                grade_distribution['B'] += 1
+            elif percentage >= 70:
+                grade_distribution['C'] += 1
+            elif percentage >= 60:
+                grade_distribution['D'] += 1
+            else:
+                grade_distribution['F'] += 1
+        
+        analytics_data['grade_distribution'] = grade_distribution
+        
+        # Student performance
+        student_performance = []
+        for student in course.students:
+            student_grades = Grade.query.join(Submission).join(Assignment).filter(
+                Assignment.course_id == course.id,
+                Submission.student_id == student.id
+            ).all()
+            
+            total_score = 0
+            total_max = 0
+            
+            for grade in student_grades:
+                total_score += grade.score
+                total_max += grade.submission.assignment.max_score
+            
+            if total_max > 0:
+                average_percentage = (total_score / total_max) * 100
+            else:
+                average_percentage = 0
+                
+            student_performance.append({
+                'name': f"{student.first_name} {student.last_name}",
+                'average': average_percentage
+            })
+        
+        analytics_data['student_performance'] = student_performance
+        
+        # Submission timing analysis
+        submission_timing = {
+            'early': 0,    # >24 hours before due date
+            'ontime': 0,   # <24 hours before due date
+            'late': 0      # after due date
+        }
+        
+        submissions = Submission.query.join(Assignment).filter(
+            Assignment.course_id == course.id
+        ).all()
+        
+        for submission in submissions:
+            time_diff = submission.assignment.due_date - submission.submission_date
+            
+            if time_diff.total_seconds() > 86400:  # More than 24 hours before
+                submission_timing['early'] += 1
+            elif time_diff.total_seconds() > 0:    # Before due date but <24 hours
+                submission_timing['ontime'] += 1
+            else:                                  # After due date
+                submission_timing['late'] += 1
+        
+        analytics_data['submission_timing'] = submission_timing
+    
+    return render_template('faculty/analytics.html', 
+                          courses=courses, 
+                          current_course=course,
+                          analytics_data=analytics_data)
 
-@faculty_bp.route('/api/analyze_submission', methods=['POST'])
+@faculty_bp.route('/api/analyze-submission', methods=['POST'])
 @login_required
 @faculty_required
 def api_analyze_submission():
-    data = request.json
+    """API endpoint to analyze a submission with AI."""
+    if not request.is_json:
+        return jsonify({'error': 'Request must be JSON'}), 400
+        
+    data = request.get_json()
+    
     submission_text = data.get('submission_text')
-    assignment_instructions = data.get('assignment_instructions')
+    instructions = data.get('instructions')
     
-    if not submission_text or not assignment_instructions:
-        return jsonify({'error': 'Missing required fields'}), 400
+    if not submission_text or not instructions:
+        return jsonify({'error': 'Both submission_text and instructions are required'}), 400
     
-    analysis = analyze_submission(submission_text, assignment_instructions)
-    return jsonify(analysis)
+    try:
+        analysis = analyze_submission(submission_text, instructions)
+        return jsonify(analysis)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

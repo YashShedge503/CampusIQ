@@ -1,9 +1,11 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
-from functools import wraps
+from sqlalchemy.exc import IntegrityError
+from datetime import datetime
+
 from app import db
-from models import User, Course, Assignment, Submission, Grade, AssignmentStatus, SubmissionStatus
-from utils import save_file, parse_date
+from models import Assignment, Course, Submission, Grade, SubmissionStatus, AssignmentStatus
+from utils import get_user_courses
 from ai_services import analyze_submission
 
 assignments_bp = Blueprint('assignments', __name__)
@@ -12,210 +14,186 @@ assignments_bp = Blueprint('assignments', __name__)
 @login_required
 def index():
     """Display all assignments the user has access to."""
+    # Get courses based on user role
+    courses = get_user_courses(current_user)
+    
     # Get filter parameters
     course_id = request.args.get('course_id', type=int)
     status = request.args.get('status')
+    search = request.args.get('search', '')
     
-    # Base query - depends on user role
+    # Base query
     if current_user.is_admin():
         query = Assignment.query
     elif current_user.is_faculty():
         query = Assignment.query.join(Course).filter(Course.faculty_id == current_user.id)
     else:  # Student
-        query = Assignment.query.join(Course).join(
-            course_students
-        ).filter(
-            course_students.c.user_id == current_user.id,
+        enrolled_ids = [c.id for c in current_user.enrolled_courses]
+        query = Assignment.query.join(Course).filter(
+            Course.id.in_(enrolled_ids),
             Assignment.status == AssignmentStatus.PUBLISHED
         )
     
     # Apply filters
     if course_id:
         query = query.filter(Assignment.course_id == course_id)
-    
+        
     if status:
-        try:
-            status_enum = AssignmentStatus[status.upper()]
-            query = query.filter(Assignment.status == status_enum)
-        except (KeyError, ValueError):
-            # Invalid status, ignore this filter
-            pass
+        query = query.filter(Assignment.status == AssignmentStatus[status.upper()])
+        
+    if search:
+        query = query.filter(Assignment.title.ilike(f'%{search}%'))
     
-    # Get all courses for the filter dropdown
-    if current_user.is_admin():
-        courses = Course.query.all()
-    elif current_user.is_faculty():
-        courses = Course.query.filter_by(faculty_id=current_user.id).all()
-    else:  # Student
-        courses = current_user.enrolled_courses
-    
-    # Get paginated results
+    # Paginate results
     page = request.args.get('page', 1, type=int)
     per_page = 10
     assignments = query.order_by(Assignment.due_date.desc()).paginate(page=page, per_page=per_page)
     
-    # For students, get IDs of submitted assignments
-    submitted_assignment_ids = []
-    if current_user.is_student():
-        submitted_assignment_ids = [s.assignment_id for s in 
-                                  Submission.query.filter_by(student_id=current_user.id).all()]
-    
     return render_template('assignments/index.html', 
-                           assignments=assignments,
-                           courses=courses,
-                           current_course_id=course_id,
-                           current_status=status,
-                           submitted_assignment_ids=submitted_assignment_ids)
+                          assignments=assignments,
+                          courses=courses,
+                          current_course_id=course_id,
+                          current_status=status,
+                          search=search)
 
 @assignments_bp.route('/<int:assignment_id>')
 @login_required
 def view(assignment_id):
     """View a specific assignment."""
-    # Get the assignment
     assignment = Assignment.query.get_or_404(assignment_id)
     
-    # Check permission
-    has_permission = False
-    if current_user.is_admin():
-        has_permission = True
-    elif current_user.is_faculty() and assignment.course.faculty_id == current_user.id:
-        has_permission = True
-    elif current_user.is_student() and assignment.status == AssignmentStatus.PUBLISHED and assignment.course in current_user.enrolled_courses:
-        has_permission = True
+    # Check if user has access to this assignment
+    if not current_user.is_admin():
+        if current_user.is_faculty() and assignment.course.faculty_id != current_user.id:
+            if assignment.course not in current_user.enrolled_courses:
+                flash('You do not have access to this assignment.', 'danger')
+                return redirect(url_for('assignments.index'))
+        
+        # If student, can't view draft assignments
+        if current_user.is_student() and assignment.status != AssignmentStatus.PUBLISHED:
+            flash('This assignment is not published yet.', 'warning')
+            return redirect(url_for('assignments.index'))
     
-    if not has_permission:
-        flash('You do not have permission to view this assignment.', 'danger')
-        return redirect(url_for('assignments.index'))
-    
-    # Get submissions
-    submissions = []
-    user_submission = None
-    
-    if current_user.is_admin() or current_user.is_faculty():
-        submissions = Submission.query.filter_by(assignment_id=assignment_id).all()
-    
+    # Get submission for students
+    submission = None
     if current_user.is_student():
-        user_submission = Submission.query.filter_by(
+        submission = Submission.query.filter_by(
             assignment_id=assignment_id,
             student_id=current_user.id
         ).first()
     
-    return render_template('assignments/view.html',
-                           assignment=assignment,
-                           submissions=submissions,
-                           user_submission=user_submission)
+    # Get all submissions for faculty
+    submissions = []
+    if current_user.is_faculty() or current_user.is_admin():
+        submissions = Submission.query.filter_by(assignment_id=assignment_id).all()
+    
+    return render_template('assignments/view.html', 
+                          assignment=assignment,
+                          submission=submission,
+                          submissions=submissions)
 
-@assignments_bp.route('/<int:assignment_id>/grade/<int:submission_id>', methods=['GET', 'POST'])
+@assignments_bp.route('/<int:assignment_id>/submissions/<int:submission_id>/grade', methods=['GET', 'POST'])
 @login_required
 def grade(assignment_id, submission_id):
     """Grade a submission for an assignment."""
-    # Check if user is admin or faculty of the course
-    submission = Submission.query.get_or_404(submission_id)
+    # Only faculty or admin can grade
+    if not current_user.is_admin() and not current_user.is_faculty():
+        flash('You do not have permission to grade submissions.', 'danger')
+        return redirect(url_for('assignments.index'))
+    
     assignment = Assignment.query.get_or_404(assignment_id)
+    submission = Submission.query.get_or_404(submission_id)
     
-    if not current_user.is_admin() and not (current_user.is_faculty() and assignment.course.faculty_id == current_user.id):
-        flash('You do not have permission to grade this submission.', 'danger')
-        return redirect(url_for('assignments.view', assignment_id=assignment_id))
+    # Check if faculty teaches this course
+    if current_user.is_faculty() and assignment.course.faculty_id != current_user.id:
+        flash('You do not have permission to grade submissions for this course.', 'danger')
+        return redirect(url_for('assignments.index'))
     
-    # Check if submission belongs to this assignment
+    # Check if submission is for this assignment
     if submission.assignment_id != assignment_id:
-        flash('Submission does not belong to this assignment.', 'danger')
+        flash('Invalid submission for this assignment.', 'danger')
         return redirect(url_for('assignments.view', assignment_id=assignment_id))
-    
-    # Check if already graded
-    grade = Grade.query.filter_by(submission_id=submission_id).first()
     
     if request.method == 'POST':
-        score = request.form.get('score')
+        score = request.form.get('score', type=float)
         feedback = request.form.get('feedback')
-        use_ai_suggestion = 'use_ai_suggestion' in request.form
         
-        # Basic validation
-        error = None
-        if not score:
-            error = 'Score is required.'
+        # Validate input
+        if score is None:
+            flash('Score is required.', 'danger')
+            return redirect(url_for('assignments.grade', assignment_id=assignment_id, submission_id=submission_id))
         
-        if error:
-            flash(error, 'danger')
+        if score < 0 or score > assignment.max_score:
+            flash(f'Score must be between 0 and {assignment.max_score}.', 'danger')
+            return redirect(url_for('assignments.grade', assignment_id=assignment_id, submission_id=submission_id))
+        
+        # Check if grade already exists
+        existing_grade = Grade.query.filter_by(submission_id=submission_id).first()
+        
+        if existing_grade:
+            # Update grade
+            existing_grade.score = score
+            existing_grade.feedback = feedback
+            existing_grade.graded_by = current_user.id
+            existing_grade.graded_at = datetime.utcnow()
         else:
-            if grade:
-                # Update existing grade
-                grade.score = float(score)
-                grade.feedback = feedback
-                grade.graded_by = current_user.id
-                grade.graded_at = datetime.now()
-            else:
-                # Create new grade
-                grade = Grade(
-                    submission_id=submission_id,
-                    score=float(score),
-                    feedback=feedback,
-                    graded_by=current_user.id
-                )
-                db.session.add(grade)
-            
-            # Update submission status
-            submission.status = SubmissionStatus.GRADED
-            
-            try:
-                db.session.commit()
-                flash('Submission graded successfully!', 'success')
-                return redirect(url_for('assignments.view', assignment_id=assignment_id))
-            except Exception as e:
-                db.session.rollback()
-                flash(f'An error occurred: {str(e)}', 'danger')
+            # Create new grade
+            new_grade = Grade(
+                submission_id=submission_id,
+                score=score,
+                feedback=feedback,
+                graded_by=current_user.id
+            )
+            db.session.add(new_grade)
+        
+        # Update submission status
+        submission.status = SubmissionStatus.GRADED
+        
+        try:
+            db.session.commit()
+            flash('Submission graded successfully.', 'success')
+            return redirect(url_for('assignments.view', assignment_id=assignment_id))
+        except IntegrityError:
+            db.session.rollback()
+            flash('An error occurred while grading the submission.', 'danger')
     
-    # Generate AI suggestions if not already available
-    ai_suggestion = None
-    if grade and grade.ai_score is not None:
-        ai_suggestion = {
-            'score': grade.ai_score,
-            'feedback': grade.ai_feedback,
-            'confidence': grade.ai_confidence
-        }
-    else:
-        if submission.content:
-            # Analyze the submission content
-            analysis = analyze_submission(
+    # Get existing grade
+    grade = Grade.query.filter_by(submission_id=submission_id).first()
+    
+    # Get AI analysis if available
+    ai_analysis = None
+    if submission.content:
+        try:
+            ai_analysis = analyze_submission(
                 submission.content,
                 assignment.description
             )
-            
-            if analysis and analysis['score_recommendation'] is not None:
-                ai_suggestion = {
-                    'score': analysis['score_recommendation'],
-                    'feedback': analysis['feedback'],
-                    'confidence': analysis['confidence'],
-                    'key_points': analysis.get('key_points', []),
-                    'improvement_areas': analysis.get('improvement_areas', [])
-                }
-                
-                # Store AI suggestion in database
-                if grade:
-                    grade.ai_score = analysis['score_recommendation']
-                    grade.ai_feedback = analysis['feedback']
-                    grade.ai_confidence = analysis['confidence']
-                    db.session.commit()
+        except Exception as e:
+            flash(f'AI analysis error: {str(e)}', 'warning')
     
     return render_template('assignments/grade.html',
-                           assignment=assignment,
-                           submission=submission,
-                           grade=grade,
-                           ai_suggestion=ai_suggestion)
+                          assignment=assignment,
+                          submission=submission,
+                          grade=grade,
+                          ai_analysis=ai_analysis)
 
 @assignments_bp.route('/api/analyze', methods=['POST'])
 @login_required
 def api_analyze():
     """API endpoint to analyze a submission text."""
-    data = request.json
-    if not data or 'submission_text' not in data or 'assignment_instructions' not in data:
-        return jsonify({'error': 'Missing required fields'}), 400
+    if not request.is_json:
+        return jsonify({'error': 'Request must be JSON'}), 400
     
-    analysis = analyze_submission(
-        data['submission_text'],
-        data['assignment_instructions'],
-        data.get('rubric'),
-        data.get('reference_answer')
-    )
+    data = request.get_json()
     
-    return jsonify(analysis)
+    submission_text = data.get('submission_text')
+    assignment_instructions = data.get('assignment_instructions')
+    
+    if not submission_text or not assignment_instructions:
+        return jsonify({'error': 'Both submission_text and assignment_instructions are required'}), 400
+    
+    try:
+        analysis = analyze_submission(submission_text, assignment_instructions)
+        return jsonify(analysis)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

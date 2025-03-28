@@ -3,206 +3,207 @@
 {% block title %}Home - College ERP System{% endblock %}
 
 {% block content %}
-<div class="container">
-    {% if current_user.is_authenticated %}
-        {% if current_user.is_admin() %}
-            <div class="row align-items-center mb-4">
-                <div class="col-md-8">
-                    <h1 class="display-4 mb-0">Welcome, {{ current_user.first_name }}!</h1>
-                    <p class="lead text-muted">Admin Dashboard</p>
-                </div>
-                <div class="col-md-4 text-end">
-                    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-primary">
-                        <i class="fas fa-tachometer-alt me-2"></i>Go to Dashboard
+<!-- Hero Section -->
+<section class="hero-section fade-in">
+    <div class="container text-center">
+        <h1 class="display-4 mb-3">Welcome to College ERP System</h1>
+        <p class="lead mb-4">An AI-driven platform to automate administrative tasks and enhance faculty-student interaction.</p>
+        
+        {% if not current_user.is_authenticated %}
+            <div class="mt-5">
+                <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg me-3">
+                    <i class="fas fa-sign-in-alt me-2"></i> Login
+                </a>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-outline-light btn-lg">
+                    <i class="fas fa-user-plus me-2"></i> Register
+                </a>
+            </div>
+        {% else %}
+            <div class="mt-5">
+                {% if current_user.is_admin() %}
+                    <a href="{{ url_for('admin_bp.dashboard') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-tachometer-alt me-2"></i> Go to Admin Dashboard
                     </a>
-                </div>
-            </div>
-            <div class="row mt-4">
-                <div class="col-md-4 mb-4">
-                    <div class="card h-100 border-primary">
-                        <div class="card-body">
-                            <h5 class="card-title"><i class="fas fa-users me-2"></i>User Management</h5>
-                            <p class="card-text">Manage users, roles, and permissions for the ERP system.</p>
-                            <a href="{{ url_for('admin.users') }}" class="btn btn-outline-primary">Manage Users</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <div class="card h-100 border-success">
-                        <div class="card-body">
-                            <h5 class="card-title"><i class="fas fa-graduation-cap me-2"></i>Course Management</h5>
-                            <p class="card-text">Create and manage academic courses and departments.</p>
-                            <a href="{{ url_for('courses.index') }}" class="btn btn-outline-success">Manage Courses</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <div class="card h-100 border-info">
-                        <div class="card-body">
-                            <h5 class="card-title"><i class="fas fa-chart-line me-2"></i>System Analytics</h5>
-                            <p class="card-text">View system-wide analytics and performance metrics.</p>
-                            <a href="{{ url_for('analytics.index') }}" class="btn btn-outline-info">View Analytics</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        {% elif current_user.is_faculty() %}
-            <div class="row align-items-center mb-4">
-                <div class="col-md-8">
-                    <h1 class="display-4 mb-0">Welcome, {{ current_user.first_name }}!</h1>
-                    <p class="lead text-muted">Faculty Dashboard</p>
-                </div>
-                <div class="col-md-4 text-end">
-                    <a href="{{ url_for('faculty.dashboard') }}" class="btn btn-primary">
-                        <i class="fas fa-tachometer-alt me-2"></i>Go to Dashboard
+                {% elif current_user.is_faculty() %}
+                    <a href="{{ url_for('faculty_bp.dashboard') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-chalkboard-teacher me-2"></i> Go to Faculty Dashboard
                     </a>
-                </div>
-            </div>
-            <div class="row mt-4">
-                <div class="col-md-4 mb-4">
-                    <div class="card h-100 border-warning">
-                        <div class="card-body">
-                            <h5 class="card-title"><i class="fas fa-tasks me-2"></i>Assignment Management</h5>
-                            <p class="card-text">Create, edit and grade student assignments.</p>
-                            <a href="{{ url_for('faculty.assignments') }}" class="btn btn-outline-warning">Manage Assignments</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <div class="card h-100 border-success">
-                        <div class="card-body">
-                            <h5 class="card-title"><i class="fas fa-book me-2"></i>Course Materials</h5>
-                            <p class="card-text">Upload and manage learning materials for your courses.</p>
-                            <a href="{{ url_for('materials.index') }}" class="btn btn-outline-success">Manage Materials</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <div class="card h-100 border-info">
-                        <div class="card-body">
-                            <h5 class="card-title"><i class="fas fa-chart-bar me-2"></i>Student Analytics</h5>
-                            <p class="card-text">View AI-powered analytics and performance predictions for your students.</p>
-                            <a href="{{ url_for('analytics.index') }}" class="btn btn-outline-info">View Analytics</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        {% elif current_user.is_student() %}
-            <div class="row align-items-center mb-4">
-                <div class="col-md-8">
-                    <h1 class="display-4 mb-0">Welcome, {{ current_user.first_name }}!</h1>
-                    <p class="lead text-muted">Student Dashboard</p>
-                </div>
-                <div class="col-md-4 text-end">
-                    <a href="{{ url_for('student.dashboard') }}" class="btn btn-primary">
-                        <i class="fas fa-tachometer-alt me-2"></i>Go to Dashboard
+                {% elif current_user.is_student() %}
+                    <a href="{{ url_for('student_bp.dashboard') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-user-graduate me-2"></i> Go to Student Dashboard
                     </a>
-                </div>
-            </div>
-            <div class="row mt-4">
-                <div class="col-md-4 mb-4">
-                    <div class="card h-100 border-warning">
-                        <div class="card-body">
-                            <h5 class="card-title"><i class="fas fa-book me-2"></i>My Courses</h5>
-                            <p class="card-text">View and access your enrolled courses.</p>
-                            <a href="{{ url_for('student.courses') }}" class="btn btn-outline-warning">View Courses</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <div class="card h-100 border-danger">
-                        <div class="card-body">
-                            <h5 class="card-title"><i class="fas fa-tasks me-2"></i>Assignments</h5>
-                            <p class="card-text">View and submit your pending assignments.</p>
-                            <a href="{{ url_for('student.assignments') }}" class="btn btn-outline-danger">View Assignments</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <div class="card h-100 border-info">
-                        <div class="card-body">
-                            <h5 class="card-title"><i class="fas fa-chart-line me-2"></i>My Performance</h5>
-                            <p class="card-text">View your performance analytics and personalized learning recommendations.</p>
-                            <a href="{{ url_for('analytics.index') }}" class="btn btn-outline-info">View Analytics</a>
-                        </div>
-                    </div>
-                </div>
+                {% endif %}
             </div>
         {% endif %}
-    {% else %}
-        <div class="row align-items-center min-vh-100">
-            <div class="col-md-6 mb-5 mb-md-0">
-                <h1 class="display-4 fw-bold mb-4">College ERP System</h1>
-                <h2 class="h3 mb-4 text-secondary">AI-Powered Education Management Platform</h2>
-                <p class="lead mb-4">A comprehensive platform for students, faculty, and administrators to manage courses, assignments, schedules, and learning with AI-powered analytics.</p>
-                <div class="d-grid gap-2 d-md-flex">
-                    <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg me-md-2">
-                        <i class="fas fa-sign-in-alt me-2"></i>Login
-                    </a>
-                    <a href="{{ url_for('auth.register') }}" class="btn btn-outline-secondary btn-lg">
-                        <i class="fas fa-user-plus me-2"></i>Register
-                    </a>
-                </div>
-            </div>
-            <div class="col-md-6 text-center">
-                <img src="{{ url_for('static', filename='img/erp-illustration.svg') }}" alt="College ERP Illustration" class="img-fluid" style="max-height: 400px;">
-            </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2>Key Features</h2>
+            <p class="lead text-muted">Explore what makes our College ERP system stand out</p>
         </div>
         
-        <div class="row mt-5 py-5">
-            <div class="col-12 text-center mb-4">
-                <h2 class="h1 mb-4">Key Features</h2>
-                <p class="lead">Transform your educational institution with our AI-powered solutions</p>
-            </div>
-            
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 border-0 shadow-sm">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card bg-dark h-100 card-hover">
                     <div class="card-body text-center p-4">
-                        <div class="feature-icon bg-primary bg-gradient text-white rounded-circle mb-3">
-                            <i class="fas fa-robot fa-2x p-3"></i>
+                        <div class="feature-icon bg-primary mx-auto">
+                            <i class="fas fa-brain text-white"></i>
                         </div>
-                        <h3 class="h4 card-title">AI-Powered Analytics</h3>
-                        <p class="card-text">Leverage machine learning to predict student performance and provide personalized learning recommendations.</p>
+                        <h4 class="mb-3">AI-Powered Insights</h4>
+                        <p class="card-text text-muted">Leverage artificial intelligence to gain valuable insights into student performance and academic trends.</p>
                     </div>
                 </div>
             </div>
             
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 border-0 shadow-sm">
+            <div class="col-md-4">
+                <div class="card bg-dark h-100 card-hover">
                     <div class="card-body text-center p-4">
-                        <div class="feature-icon bg-success bg-gradient text-white rounded-circle mb-3">
-                            <i class="fas fa-calendar-alt fa-2x p-3"></i>
+                        <div class="feature-icon bg-success mx-auto">
+                            <i class="fas fa-tasks text-white"></i>
                         </div>
-                        <h3 class="h4 card-title">Intelligent Scheduling</h3>
-                        <p class="card-text">Optimize academic schedules with AI-driven planning that considers workload, faculty availability, and facility usage.</p>
+                        <h4 class="mb-3">Automated Workflows</h4>
+                        <p class="card-text text-muted">Streamline administrative tasks with automated workflows for assignments, grading, and course management.</p>
                     </div>
                 </div>
             </div>
             
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 border-0 shadow-sm">
+            <div class="col-md-4">
+                <div class="card bg-dark h-100 card-hover">
                     <div class="card-body text-center p-4">
-                        <div class="feature-icon bg-info bg-gradient text-white rounded-circle mb-3">
-                            <i class="fas fa-graduation-cap fa-2x p-3"></i>
+                        <div class="feature-icon bg-info mx-auto">
+                            <i class="fas fa-chart-line text-white"></i>
                         </div>
-                        <h3 class="h4 card-title">Automated Grading</h3>
-                        <p class="card-text">Use natural language processing to assist in grading assignments and provide detailed feedback to students.</p>
+                        <h4 class="mb-3">Advanced Analytics</h4>
+                        <p class="card-text text-muted">Track academic progress, attendance, and performance metrics with comprehensive analytics dashboards.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card bg-dark h-100 card-hover">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon bg-warning mx-auto">
+                            <i class="fas fa-calendar-alt text-white"></i>
+                        </div>
+                        <h4 class="mb-3">Smart Scheduling</h4>
+                        <p class="card-text text-muted">Optimize timetables and schedules with AI-powered recommendations based on preferences and constraints.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card bg-dark h-100 card-hover">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon bg-danger mx-auto">
+                            <i class="fas fa-graduation-cap text-white"></i>
+                        </div>
+                        <h4 class="mb-3">Personalized Learning</h4>
+                        <p class="card-text text-muted">Tailor educational content and assignments to individual student needs and learning styles.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card bg-dark h-100 card-hover">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon bg-secondary mx-auto">
+                            <i class="fas fa-comments text-white"></i>
+                        </div>
+                        <h4 class="mb-3">Enhanced Communication</h4>
+                        <p class="card-text text-muted">Facilitate seamless communication between students, faculty, and administrators through integrated messaging.</p>
                     </div>
                 </div>
             </div>
         </div>
-    {% endif %}
-</div>
-{% endblock %}
+    </div>
+</section>
 
-{% block extra_css %}
-<style>
-    .feature-icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 4rem;
-        height: 4rem;
-    }
-</style>
+<!-- Role-Based Section -->
+<section class="py-5 bg-dark">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2>For Everyone in Education</h2>
+            <p class="lead text-muted">Discover how our system benefits different roles in the educational ecosystem</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card bg-dark h-100 border border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0"><i class="fas fa-user-shield me-2"></i> For Administrators</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li class="mb-2"><i class="fas fa-check-circle text-primary me-2"></i> Centralized management dashboard</li>
+                            <li class="mb-2"><i class="fas fa-check-circle text-primary me-2"></i> User and role management</li>
+                            <li class="mb-2"><i class="fas fa-check-circle text-primary me-2"></i> Course and curriculum oversight</li>
+                            <li class="mb-2"><i class="fas fa-check-circle text-primary me-2"></i> Institutional analytics</li>
+                            <li class="mb-2"><i class="fas fa-check-circle text-primary me-2"></i> Resource allocation optimization</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card bg-dark h-100 border border-success">
+                    <div class="card-header bg-success text-white">
+                        <h4 class="mb-0"><i class="fas fa-chalkboard-teacher me-2"></i> For Faculty</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Automated assignment grading</li>
+                            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> AI-assisted feedback generation</li>
+                            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Course content management</li>
+                            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Student performance insights</li>
+                            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Research recommendation engine</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card bg-dark h-100 border border-info">
+                    <div class="card-header bg-info text-white">
+                        <h4 class="mb-0"><i class="fas fa-user-graduate me-2"></i> For Students</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li class="mb-2"><i class="fas fa-check-circle text-info me-2"></i> Personalized learning paths</li>
+                            <li class="mb-2"><i class="fas fa-check-circle text-info me-2"></i> Assignment tracking and submission</li>
+                            <li class="mb-2"><i class="fas fa-check-circle text-info me-2"></i> Progress visualization</li>
+                            <li class="mb-2"><i class="fas fa-check-circle text-info me-2"></i> Course material access</li>
+                            <li class="mb-2"><i class="fas fa-check-circle text-info me-2"></i> Smart study recommendations</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-5">
+    <div class="container text-center">
+        <h2 class="mb-4">Ready to Transform Your Educational Experience?</h2>
+        <p class="lead text-muted mb-5">Join our AI-driven College ERP system and take advantage of intelligent education management.</p>
+        
+        {% if not current_user.is_authenticated %}
+            <div>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg px-5">
+                    <i class="fas fa-rocket me-2"></i> Get Started
+                </a>
+            </div>
+        {% else %}
+            <div>
+                <a href="{{ url_for('auth.profile') }}" class="btn btn-primary btn-lg px-5">
+                    <i class="fas fa-user-circle me-2"></i> Go to My Profile
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</section>
 {% endblock %}

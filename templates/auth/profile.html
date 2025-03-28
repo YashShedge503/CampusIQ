@@ -3,151 +3,178 @@
 {% block title %}My Profile - College ERP System{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <div class="row profile-header">
-        <div class="col-lg-8 mx-auto text-center">
-            <div class="py-3">
-                <div class="display-6 fw-bold mb-3">{{ current_user.get_full_name() }}</div>
-                <p class="lead text-muted">
-                    {% if current_user.is_admin() %}
-                        Administrator
-                    {% elif current_user.is_faculty() %}
-                        Faculty Member
-                    {% elif current_user.is_student() %}
-                        Student
-                    {% endif %}
-                </p>
+<div class="row">
+    <div class="col-12 mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('auth.index') }}">Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page">My Profile</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card bg-dark shadow">
+            <div class="card-body text-center p-4">
+                <div class="avatar-wrapper mb-4">
+                    <div class="avatar bg-primary text-white display-1 rounded-circle mx-auto d-flex align-items-center justify-content-center" style="width: 150px; height: 150px;">
+                        {{ current_user.first_name[0] }}{{ current_user.last_name[0] }}
+                    </div>
+                </div>
+                <h3 class="card-title mb-2">{{ current_user.get_full_name() }}</h3>
+                <p class="text-muted mb-3">{{ current_user.username }} - {{ user_role|capitalize }}</p>
+                <a href="{{ url_for('auth.edit_profile') }}" class="btn btn-primary">
+                    <i class="fas fa-user-edit me-2"></i> Edit Profile
+                </a>
+            </div>
+        </div>
+        
+        <div class="card bg-dark shadow mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Account Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="text-muted small mb-1">Username</div>
+                    <div>{{ current_user.username }}</div>
+                </div>
+                <div class="mb-3">
+                    <div class="text-muted small mb-1">Email</div>
+                    <div>{{ current_user.email }}</div>
+                </div>
+                <div class="mb-3">
+                    <div class="text-muted small mb-1">Role</div>
+                    <div>
+                        <span class="badge {% if current_user.is_admin() %}bg-danger{% elif current_user.is_faculty() %}bg-success{% else %}bg-info{% endif %}">
+                            {{ user_role|capitalize }}
+                        </span>
+                    </div>
+                </div>
+                <div class="mb-0">
+                    <div class="text-muted small mb-1">Member Since</div>
+                    <div>{{ current_user.created_at.strftime('%B %d, %Y') }}</div>
+                </div>
             </div>
         </div>
     </div>
-
-    <div class="row">
-        <div class="col-lg-8 mx-auto">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-light">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-user-circle me-2"></i>Profile Information</h5>
-                        <a href="{{ url_for('auth.edit_profile') }}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-edit me-1"></i>Edit Profile
+    
+    <div class="col-lg-8">
+        <div class="card bg-dark shadow mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Account Activity</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item bg-dark d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-sign-in-alt me-2 text-info"></i>
+                            <span>Last login</span>
+                        </div>
+                        <span class="text-muted">{{ now.strftime('%B %d, %Y at %H:%M') }}</span>
+                    </div>
+                    <div class="list-group-item bg-dark d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-sync me-2 text-info"></i>
+                            <span>Last profile update</span>
+                        </div>
+                        <span class="text-muted">{{ current_user.updated_at.strftime('%B %d, %Y at %H:%M') }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card bg-dark shadow mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Activity</h5>
+            </div>
+            <div class="card-body">
+                {% if current_user.is_student() %}
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <div class="card bg-dark border border-secondary">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 text-muted">Enrolled Courses</h6>
+                                    <h3 class="card-title">{{ current_user.enrolled_courses|length }}</h3>
+                                    <a href="#" class="card-link">View Courses</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card bg-dark border border-secondary">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 text-muted">Pending Assignments</h6>
+                                    <h3 class="card-title">--</h3>
+                                    <a href="#" class="card-link">View Assignments</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% elif current_user.is_faculty() %}
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <div class="card bg-dark border border-secondary">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 text-muted">Courses Teaching</h6>
+                                    <h3 class="card-title">{{ current_user.taught_courses|length }}</h3>
+                                    <a href="#" class="card-link">Manage Courses</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card bg-dark border border-secondary">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 text-muted">Pending Grading</h6>
+                                    <h3 class="card-title">--</h3>
+                                    <a href="#" class="card-link">Grade Submissions</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% elif current_user.is_admin() %}
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <div class="card bg-dark border border-secondary">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 text-muted">Total Users</h6>
+                                    <h3 class="card-title">--</h3>
+                                    <a href="{{ url_for('admin_bp.users') }}" class="card-link">Manage Users</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card bg-dark border border-secondary">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 text-muted">Total Courses</h6>
+                                    <h3 class="card-title">--</h3>
+                                    <a href="{{ url_for('admin_bp.courses') }}" class="card-link">Manage Courses</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card bg-dark shadow">
+            <div class="card-header">
+                <h5 class="mb-0">Account Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <a href="{{ url_for('auth.edit_profile') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-user-edit me-2"></i> Edit Profile
+                        </a>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger w-100">
+                            <i class="fas fa-sign-out-alt me-2"></i> Logout
                         </a>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <h6 class="text-muted mb-1">Full Name</h6>
-                                <p class="mb-0 fs-5">{{ current_user.first_name }} {{ current_user.last_name }}</p>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <h6 class="text-muted mb-1">Username</h6>
-                                <p class="mb-0 fs-5">{{ current_user.username }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <h6 class="text-muted mb-1">Email</h6>
-                                <p class="mb-0 fs-5">{{ current_user.email }}</p>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <h6 class="text-muted mb-1">Account Created</h6>
-                                <p class="mb-0 fs-5">{{ current_user.created_at.strftime('%B %d, %Y') }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <h6 class="text-muted mb-1">Account Status</h6>
-                                <p class="mb-0">
-                                    {% if current_user.is_active %}
-                                        <span class="badge bg-success">Active</span>
-                                    {% else %}
-                                        <span class="badge bg-danger">Inactive</span>
-                                    {% endif %}
-                                </p>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <h6 class="text-muted mb-1">Role</h6>
-                                <p class="mb-0">
-                                    {% if current_user.is_admin() %}
-                                        <span class="badge bg-primary">Administrator</span>
-                                    {% elif current_user.is_faculty() %}
-                                        <span class="badge bg-info">Faculty</span>
-                                    {% elif current_user.is_student() %}
-                                        <span class="badge bg-secondary">Student</span>
-                                    {% endif %}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
-            
-            {% if current_user.is_student() %}
-            <div class="card border-0 shadow-sm mt-4">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>Academic Information</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row mb-4">
-                        <div class="col-md-12">
-                            <h6 class="text-muted mb-3">Enrolled Courses</h6>
-                            {% if current_user.enrolled_courses %}
-                                <div class="list-group">
-                                    {% for course in current_user.enrolled_courses %}
-                                        <a href="{{ url_for('courses.view', course_id=course.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                                            {{ course.code }} - {{ course.title }}
-                                            <span class="badge bg-primary rounded-pill">{{ course.credits }} credits</span>
-                                        </a>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <p class="text-muted">You are not enrolled in any courses.</p>
-                                <a href="{{ url_for('courses.index') }}" class="btn btn-outline-primary">Browse Courses</a>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-            
-            {% if current_user.is_faculty() %}
-            <div class="card border-0 shadow-sm mt-4">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0"><i class="fas fa-chalkboard-teacher me-2"></i>Teaching Information</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row mb-4">
-                        <div class="col-md-12">
-                            <h6 class="text-muted mb-3">Courses Teaching</h6>
-                            {% if current_user.taught_courses %}
-                                <div class="list-group">
-                                    {% for course in current_user.taught_courses %}
-                                        <a href="{{ url_for('courses.view', course_id=course.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                                            {{ course.code }} - {{ course.title }}
-                                            <span class="badge bg-primary rounded-pill">{{ course.students|length }} students</span>
-                                        </a>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <p class="text-muted">You are not assigned to teach any courses.</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
         </div>
     </div>
 </div>

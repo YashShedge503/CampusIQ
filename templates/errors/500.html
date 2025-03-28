@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+
+{% block title %}Server Error - College ERP System{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center my-5 py-5">
+    <div class="text-center">
+        <h1 class="display-1 fw-bold text-danger">500</h1>
+        <h2 class="mb-4">Internal Server Error</h2>
+        <p class="lead mb-5">Something went wrong on our servers. We're working to fix the issue as soon as possible.</p>
+        <div class="text-center">
+            <a href="{{ url_for('auth.index') }}" class="btn btn-primary">
+                <i class="fas fa-home me-2"></i> Return to Homepage
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
