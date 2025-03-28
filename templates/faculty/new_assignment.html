@@ -1,0 +1,108 @@
+{% extends "layout.html" %}
+
+{% block title %}Create New Assignment - Faculty - College ERP System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('faculty.assignments') }}">Assignments</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Create New Assignment</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-0 shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Create New Assignment</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('faculty.new_assignment') }}">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="title" name="title" required
+                               placeholder="e.g., Midterm Essay, Lab Assignment 1">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description & Instructions</label>
+                        <textarea class="form-control" id="description" name="description" rows="6" 
+                                  placeholder="Provide detailed instructions for the assignment..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="course_id" class="form-label">Course</label>
+                        <select class="form-select" id="course_id" name="course_id" required>
+                            <option value="" selected disabled>Select a course</option>
+                            {% for course in courses %}
+                            <option value="{{ course.id }}" {% if request.args.get('course_id')|int == course.id %}selected{% endif %}>
+                                {{ course.code }}: {{ course.title }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="due_date" class="form-label">Due Date</label>
+                            <input type="datetime-local" class="form-control" id="due_date" name="due_date" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="max_score" class="form-label">Maximum Score</label>
+                            <input type="number" class="form-control" id="max_score" name="max_score" 
+                                   value="100" min="1" step="0.1" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="weight" class="form-label">Weight</label>
+                            <input type="number" class="form-control" id="weight" name="weight" 
+                                   value="1.0" min="0.1" max="5" step="0.1">
+                            <div class="form-text">Impact on final grade</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status" required>
+                            <option value="DRAFT">Draft (hidden from students)</option>
+                            <option value="PUBLISHED">Published (visible to students)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('faculty.assignments') }}" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Create Assignment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default due date to 1 week from now
+    const dueDateInput = document.getElementById('due_date');
+    if (dueDateInput) {
+        const now = new Date();
+        now.setDate(now.getDate() + 7); // 1 week from now
+        
+        // Format the date for datetime-local input
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        
+        dueDateInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+});
+</script>
+{% endblock %}

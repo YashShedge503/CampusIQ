@@ -1,0 +1,249 @@
+{% extends "layout.html" %}
+
+{% block title %}Grade Submission - College ERP System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('assignments.index') }}">Assignments</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('assignments.view', assignment_id=assignment.id) }}">{{ assignment.title }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Grade Submission</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row">
+    <!-- Submission Details -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Submission by {{ submission.student.get_full_name() }}</h4>
+                <span class="badge bg-{{ 'danger' if submission.is_late() else 'success' }}">
+                    {{ 'Late' if submission.is_late() else 'On Time' }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <h5>Assignment: {{ assignment.title }}</h5>
+                    <p class="text-muted">{{ assignment.course.code }}: {{ assignment.course.title }}</p>
+                    <p>
+                        <strong>Submitted:</strong> {{ submission.submission_date.strftime('%B %d, %Y at %I:%M %p') }}<br>
+                        <strong>Due Date:</strong> {{ assignment.due_date.strftime('%B %d, %Y at %I:%M %p') }}
+                    </p>
+                </div>
+                
+                <h5 class="mb-3">Submission Content</h5>
+                {% if submission.content %}
+                <div class="card mb-4">
+                    <div class="card-body bg-light">
+                        {{ submission.content|safe }}
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-muted mb-4">No text content provided.</p>
+                {% endif %}
+                
+                {% if submission.file_path %}
+                <div class="mb-4">
+                    <h5>Attached File</h5>
+                    <div class="d-grid gap-2 d-md-flex">
+                        <a href="{{ url_for('materials.download', material_id=submission.id) }}" class="btn btn-outline-primary">
+                            <i class="fas fa-download me-2"></i>Download Submitted File
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Grading Form -->
+                <form method="post" action="{{ url_for('assignments.grade', assignment_id=assignment.id, submission_id=submission.id) }}" id="gradeForm">
+                    <h5 class="mb-3">Grading</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="score" class="form-label">Score</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="score" name="score" min="0" max="{{ assignment.max_score }}" step="0.1" 
+                                       value="{{ grade.score if grade else '' }}" required>
+                                <span class="input-group-text">/ {{ assignment.max_score }}</span>
+                            </div>
+                            <div class="form-text">Enter a score between 0 and {{ assignment.max_score }}</div>
+                        </div>
+                        
+                        {% if ai_suggestion %}
+                        <div class="col-md-6">
+                            <label class="form-label">AI Score Recommendation</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control bg-light" value="{{ ai_suggestion.score }}" readonly>
+                                <span class="input-group-text">/ {{ assignment.max_score }}</span>
+                                <button type="button" class="btn btn-outline-primary" id="useAiScore">
+                                    <i class="fas fa-robot me-1"></i>Use
+                                </button>
+                            </div>
+                            <div class="form-text">AI confidence: {{ (ai_suggestion.confidence * 100)|int }}%</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="feedback" class="form-label">Feedback</label>
+                        <textarea class="form-control" id="feedback" name="feedback" rows="6">{{ grade.feedback if grade else '' }}</textarea>
+                    </div>
+                    
+                    {% if ai_suggestion %}
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="use_ai_suggestion" name="use_ai_suggestion">
+                            <label class="form-check-label" for="use_ai_suggestion">
+                                Include AI feedback with my comments
+                            </label>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('assignments.view', assignment_id=assignment.id) }}" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save Grade
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- AI Analysis -->
+    <div class="col-lg-4">
+        {% if ai_suggestion %}
+        <div class="card border-0 shadow mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-robot me-2"></i>AI Analysis</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6>Recommended Score: {{ ai_suggestion.score|round(1) }} / {{ assignment.max_score }}</h6>
+                    <div class="progress">
+                        <div class="progress-bar bg-{{ 'success' if ai_suggestion.score >= 90 else 'primary' if ai_suggestion.score >= 80 else 'warning' if ai_suggestion.score >= 70 else 'danger' }}" 
+                             role="progressbar" style="width: {{ (ai_suggestion.score / assignment.max_score * 100)|int }}%" 
+                             aria-valuenow="{{ ai_suggestion.score|int }}" aria-valuemin="0" aria-valuemax="{{ assignment.max_score }}">
+                            {{ (ai_suggestion.score / assignment.max_score * 100)|int }}%
+                        </div>
+                    </div>
+                    <p class="text-muted mt-2 small">Confidence: {{ (ai_suggestion.confidence * 100)|int }}%</p>
+                </div>
+                
+                <h6 class="mb-2">AI Feedback:</h6>
+                <div class="card bg-light mb-3">
+                    <div class="card-body">
+                        <p>{{ ai_suggestion.feedback }}</p>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="useAiFeedback">
+                            <i class="fas fa-plus-circle me-1"></i>Use This Feedback
+                        </button>
+                    </div>
+                </div>
+                
+                {% if ai_suggestion.key_points %}
+                <h6 class="mb-2">Key Points Identified:</h6>
+                <ul class="list-group mb-3">
+                    {% for point in ai_suggestion.key_points %}
+                    <li class="list-group-item">{{ point }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                
+                {% if ai_suggestion.improvement_areas %}
+                <h6 class="mb-2">Suggested Improvement Areas:</h6>
+                <ul class="list-group">
+                    {% for area in ai_suggestion.improvement_areas %}
+                    <li class="list-group-item">{{ area }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Student Info -->
+        <div class="card border-0 shadow">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-user-graduate me-2"></i>Student Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <div class="display-6">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <h5 class="mt-2">{{ submission.student.get_full_name() }}</h5>
+                    <p class="text-muted">{{ submission.student.email }}</p>
+                </div>
+                
+                <hr>
+                
+                <h6>Previous Assignments</h6>
+                {% set student_submissions = submission.student.submissions %}
+                {% set previous_submissions = [] %}
+                {% for sub in student_submissions %}
+                    {% if sub.assignment.course_id == assignment.course_id and sub.id != submission.id %}
+                        {% set _ = previous_submissions.append(sub) %}
+                    {% endif %}
+                {% endfor %}
+                
+                {% if previous_submissions %}
+                <div class="list-group list-group-flush">
+                    {% for sub in previous_submissions %}
+                    <div class="list-group-item px-0">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <small class="d-block">{{ sub.assignment.title }}</small>
+                                {% if sub.grade %}
+                                <small class="badge bg-{{ 'success' if sub.grade.score >= 90 else 'primary' if sub.grade.score >= 80 else 'warning' if sub.grade.score >= 70 else 'danger' }}">
+                                    {{ sub.grade.score }}/{{ sub.assignment.max_score }}
+                                </small>
+                                {% else %}
+                                <small class="badge bg-secondary">Not graded</small>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted">{{ sub.submission_date.strftime('%b %d') }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted small">No previous submissions in this course.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Use AI score button
+    const useAiScoreBtn = document.getElementById('useAiScore');
+    if (useAiScoreBtn) {
+        useAiScoreBtn.addEventListener('click', function() {
+            const aiScore = {{ ai_suggestion.score if ai_suggestion else 0 }};
+            document.getElementById('score').value = aiScore;
+        });
+    }
+    
+    // Use AI feedback button
+    const useAiFeedbackBtn = document.getElementById('useAiFeedback');
+    if (useAiFeedbackBtn) {
+        useAiFeedbackBtn.addEventListener('click', function() {
+            const aiFeedback = `{{ ai_suggestion.feedback if ai_suggestion else '' }}`;
+            const currentFeedback = document.getElementById('feedback').value;
+            
+            if (currentFeedback) {
+                document.getElementById('feedback').value = currentFeedback + '\n\n' + aiFeedback;
+            } else {
+                document.getElementById('feedback').value = aiFeedback;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

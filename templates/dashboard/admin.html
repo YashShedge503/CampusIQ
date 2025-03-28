@@ -1,0 +1,251 @@
+{% extends "layout.html" %}
+
+{% block title %}Admin Dashboard - College ERP System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2 mb-0"><i class="fas fa-tachometer-alt me-2"></i>Admin Dashboard</h1>
+    <span class="badge bg-primary fs-6">Administrator</span>
+</div>
+
+<div class="row">
+    <!-- Stats Cards -->
+    <div class="col-md-3">
+        <div class="card bg-primary text-white mb-4 border-0 shadow">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">{{ user_count }}</h5>
+                        <h6 class="text-white-50">Total Users</h6>
+                    </div>
+                    <div>
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a class="small text-white stretched-link" href="{{ url_for('admin.users') }}">View Details</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-success text-white mb-4 border-0 shadow">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">{{ student_count }}</h5>
+                        <h6 class="text-white-50">Students</h6>
+                    </div>
+                    <div>
+                        <i class="fas fa-user-graduate fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a class="small text-white stretched-link" href="{{ url_for('admin.users') }}?role=student">View Details</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-warning text-white mb-4 border-0 shadow">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">{{ faculty_count }}</h5>
+                        <h6 class="text-white-50">Faculty</h6>
+                    </div>
+                    <div>
+                        <i class="fas fa-chalkboard-teacher fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a class="small text-white stretched-link" href="{{ url_for('admin.users') }}?role=faculty">View Details</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-info text-white mb-4 border-0 shadow">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">{{ course_count }}</h5>
+                        <h6 class="text-white-50">Courses</h6>
+                    </div>
+                    <div>
+                        <i class="fas fa-book fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a class="small text-white stretched-link" href="{{ url_for('admin.courses') }}">View Details</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Quick Actions -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="{{ url_for('admin.new_user') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-user-plus me-2"></i>Add New User
+                    </a>
+                    <a href="{{ url_for('admin.import_users') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-file-import me-2"></i>Import Users
+                    </a>
+                    <a href="{{ url_for('courses.create') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-plus-circle me-2"></i>Create New Course
+                    </a>
+                    <a href="{{ url_for('admin.system') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-cogs me-2"></i>System Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Users -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-users me-2"></i>Recent Users</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in recent_users %}
+                            <tr>
+                                <td>{{ user.get_full_name() }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'primary' if user.is_admin() else 'warning' if user.is_faculty() else 'success' }}">
+                                        {{ user.role.name.value }}
+                                    </span>
+                                </td>
+                                <td>{{ user.created_at.strftime('%d %b %Y') }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center">No users found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer text-center">
+                <a href="{{ url_for('admin.users') }}" class="btn btn-sm btn-primary">View All Users</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Courses -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-book me-2"></i>Recent Courses</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Code</th>
+                                <th>Title</th>
+                                <th>Faculty</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for course in recent_courses %}
+                            <tr>
+                                <td>{{ course.code }}</td>
+                                <td>{{ course.title }}</td>
+                                <td>{{ course.faculty.get_full_name() if course.faculty else 'Not Assigned' }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center">No courses found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer text-center">
+                <a href="{{ url_for('admin.courses') }}" class="btn btn-sm btn-primary">View All Courses</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- System Health -->
+    <div class="col-md-12 mb-4">
+        <div class="card border-0 shadow">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-heartbeat me-2"></i>System Health</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 text-center">
+                        <div class="display-4 text-success mb-2">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h5>Database</h5>
+                        <p class="text-muted">Connected</p>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="display-4 text-success mb-2">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h5>Storage</h5>
+                        <p class="text-muted">Available</p>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="display-4 text-success mb-2">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h5>AI Services</h5>
+                        <p class="text-muted">Operational</p>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="display-4 text-success mb-2">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h5>Security</h5>
+                        <p class="text-muted">Protected</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Any dashboard-specific JavaScript can go here
+});
+</script>
+{% endblock %}

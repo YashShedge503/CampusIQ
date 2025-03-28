@@ -1,0 +1,133 @@
+{% extends "layout.html" %}
+
+{% block title %}Upload Course Material - College ERP System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('materials.index') }}">Materials</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Upload Material</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-upload me-2"></i>Upload Course Material</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('materials.create') }}" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="title" name="title" required
+                               placeholder="e.g., Lecture Notes, Assignment Guidelines">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"
+                                  placeholder="Brief description of the material..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="course_id" class="form-label">Course</label>
+                        <select class="form-select" id="course_id" name="course_id" required>
+                            <option value="" selected disabled>Select a course</option>
+                            {% for course in courses %}
+                            <option value="{{ course.id }}" {% if preselected_course_id == course.id %}selected{% endif %}>
+                                {{ course.code }}: {{ course.title }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Material Type</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="material_type" id="type_file" value="file" checked>
+                            <label class="form-check-label" for="type_file">
+                                Upload a File
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="material_type" id="type_url" value="url">
+                            <label class="form-check-label" for="type_url">
+                                Provide a URL
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="fileUploadSection" class="mb-3">
+                        <label for="file" class="form-label">File</label>
+                        <input type="file" class="form-control" id="file" name="file">
+                        <div class="form-text">
+                            Allowed file types: PDF, DOC, DOCX, PPT, PPTX, TXT, CSV, ZIP, PNG, JPG, JPEG
+                        </div>
+                    </div>
+                    
+                    <div id="urlSection" class="mb-3" style="display: none;">
+                        <label for="url" class="form-label">URL</label>
+                        <input type="url" class="form-control" id="url" name="url"
+                               placeholder="https://example.com/resource">
+                        <div class="form-text">
+                            Provide a direct link to the resource
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="is_visible" name="is_visible" checked>
+                        <label class="form-check-label" for="is_visible">
+                            Visible to students
+                        </label>
+                        <div class="form-text">
+                            If unchecked, only faculty can view this material
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('materials.index') }}" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload me-2"></i>Upload Material
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle between file upload and URL input
+    const typeFileRadio = document.getElementById('type_file');
+    const typeUrlRadio = document.getElementById('type_url');
+    const fileUploadSection = document.getElementById('fileUploadSection');
+    const urlSection = document.getElementById('urlSection');
+    
+    typeFileRadio.addEventListener('change', function() {
+        if (this.checked) {
+            fileUploadSection.style.display = 'block';
+            urlSection.style.display = 'none';
+            document.getElementById('file').setAttribute('required', '');
+            document.getElementById('url').removeAttribute('required');
+        }
+    });
+    
+    typeUrlRadio.addEventListener('change', function() {
+        if (this.checked) {
+            fileUploadSection.style.display = 'none';
+            urlSection.style.display = 'block';
+            document.getElementById('file').removeAttribute('required');
+            document.getElementById('url').setAttribute('required', '');
+        }
+    });
+});
+</script>
+{% endblock %}

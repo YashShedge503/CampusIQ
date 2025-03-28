@@ -1,0 +1,276 @@
+{% extends "layout.html" %}
+
+{% block title %}Student Dashboard - College ERP System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2 mb-0"><i class="fas fa-tachometer-alt me-2"></i>Student Dashboard</h1>
+    <span class="badge bg-success fs-6">Student</span>
+</div>
+
+<div class="row">
+    <!-- Stats Cards -->
+    <div class="col-md-4">
+        <div class="card bg-primary text-white mb-4 border-0 shadow">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">{{ course_count }}</h5>
+                        <h6 class="text-white-50">Enrolled Courses</h6>
+                    </div>
+                    <div>
+                        <i class="fas fa-book fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a class="small text-white stretched-link" href="{{ url_for('student.courses') }}">View Courses</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card bg-warning text-white mb-4 border-0 shadow">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">{{ upcoming_assignments|length }}</h5>
+                        <h6 class="text-white-50">Upcoming Assignments</h6>
+                    </div>
+                    <div>
+                        <i class="fas fa-tasks fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a class="small text-white stretched-link" href="{{ url_for('student.assignments') }}">View Assignments</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card bg-success text-white mb-4 border-0 shadow">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">{{ "%.1f"|format(avg_grade) if avg_grade else "N/A" }}</h5>
+                        <h6 class="text-white-50">Average Grade</h6>
+                    </div>
+                    <div>
+                        <i class="fas fa-chart-line fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a class="small text-white stretched-link" href="{{ url_for('student.analytics') }}">View Analytics</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Upcoming Assignments -->
+    <div class="col-md-8 mb-4">
+        <div class="card h-100 border-0 shadow">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Upcoming Assignments</h5>
+                <a href="{{ url_for('student.assignments') }}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% if upcoming_assignments %}
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Assignment</th>
+                                <th>Course</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for assignment in upcoming_assignments %}
+                            <tr>
+                                <td>{{ assignment.title }}</td>
+                                <td>{{ assignment.course.code }}</td>
+                                <td>
+                                    {{ assignment.due_date.strftime('%b %d, %Y') }}
+                                    <small class="text-{{ 'danger' if (assignment.due_date - now).days <= 2 else 'warning' if (assignment.due_date - now).days <= 5 else 'muted' }}">
+                                        ({{ (assignment.due_date - now).days }} days left)
+                                    </small>
+                                </td>
+                                <td>
+                                    {% if assignment.id in submitted_assignment_ids %}
+                                    <span class="badge bg-success">Submitted</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('student.submit_assignment', assignment_id=assignment.id) }}" class="btn btn-sm btn-{{ 'secondary' if assignment.id in submitted_assignment_ids else 'primary' }}">
+                                        {{ 'Update' if assignment.id in submitted_assignment_ids else 'Submit' }}
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center p-4">
+                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <p>No upcoming assignments due. Great job keeping up!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Grades -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-star me-2"></i>Recent Grades</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_grades %}
+                <div class="list-group list-group-flush">
+                    {% for grade in recent_grades %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ grade.submission.assignment.title }}</h6>
+                            <span class="badge bg-{{ 'success' if grade.score >= 90 else 'primary' if grade.score >= 80 else 'warning' if grade.score >= 70 else 'danger' }}">
+                                {{ grade.score }}/{{ grade.submission.assignment.max_score }}
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted">{{ grade.submission.assignment.course.code }}</small>
+                            <small>{{ grade.graded_at.strftime('%b %d, %Y') }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center p-4">
+                    <i class="fas fa-star fa-3x text-muted mb-3"></i>
+                    <p>No grades available yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Course Materials -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100 border-0 shadow">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-file-pdf me-2"></i>Recent Materials</h5>
+                <a href="{{ url_for('materials.index') }}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_materials %}
+                <div class="list-group list-group-flush">
+                    {% for material in recent_materials %}
+                    <a href="{{ url_for('materials.view', material_id=material.id) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ material.title }}</h6>
+                            <small class="text-muted">{{ material.course.code }}</small>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-truncate me-3" style="max-width: 300px;">
+                                {{ material.description|default('No description')|truncate(50) }}
+                            </small>
+                            <small>{{ material.created_at.strftime('%b %d') }}</small>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center p-4">
+                    <i class="fas fa-file-pdf fa-3x text-muted mb-3"></i>
+                    <p>No course materials available yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Schedule -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100 border-0 shadow">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Upcoming Schedule</h5>
+                <a href="{{ url_for('schedule.index') }}" class="btn btn-sm btn-primary">Full Schedule</a>
+            </div>
+            <div class="card-body p-0">
+                {% if upcoming_schedule %}
+                <div class="list-group list-group-flush">
+                    {% for event in upcoming_schedule %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ event.title }}</h6>
+                            <small>
+                                {% if event.course %}
+                                {{ event.course.code }}
+                                {% endif %}
+                            </small>
+                        </div>
+                        <p class="mb-1 small">{{ event.description|default('No description')|truncate(50) }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small>
+                                <i class="fas fa-clock me-1"></i>
+                                {{ event.start_time.strftime('%a, %b %d, %H:%M') }}
+                            </small>
+                            <small>
+                                <i class="fas fa-map-marker-alt me-1"></i>
+                                {{ event.location|default('N/A') }}
+                            </small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center p-4">
+                    <i class="fas fa-calendar-alt fa-3x text-muted mb-3"></i>
+                    <p>No upcoming scheduled events.</p>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent">
+                <h6 class="mb-2"><i class="fas fa-lightbulb text-warning me-2"></i>Study Recommendations</h6>
+                {% if schedule_suggestions %}
+                <div class="list-group list-group-flush">
+                    {% for suggestion in schedule_suggestions[:2] %}
+                    {% if suggestion.type == 'study_session' %}
+                    <div class="list-group-item bg-light p-2">
+                        <small>
+                            <i class="fas fa-book-open me-1"></i>
+                            <strong>{{ suggestion.title }}</strong> - 
+                            Due in {{ suggestion.days_until_due }} days
+                        </small>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="small text-muted mb-0">No study recommendations available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Student dashboard specific JavaScript
+});
+</script>
+{% endblock %}

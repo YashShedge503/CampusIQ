@@ -1,0 +1,186 @@
+{% extends "layout.html" %}
+
+{% block title %}Course Materials - College ERP System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2"><i class="fas fa-file-pdf me-2"></i>Course Materials</h1>
+    {% if current_user.is_admin() or current_user.is_faculty() %}
+    <a href="{{ url_for('materials.create') }}" class="btn btn-primary">
+        <i class="fas fa-upload me-2"></i>Upload Material
+    </a>
+    {% endif %}
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filter Materials</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" action="{{ url_for('materials.index') }}" class="row g-3">
+            <div class="col-md-10">
+                <label for="course_id" class="form-label">Course</label>
+                <select class="form-select" id="course_id" name="course_id">
+                    <option value="">All Courses</option>
+                    {% for course in courses %}
+                    <option value="{{ course.id }}" {% if current_course_id == course.id %}selected{% endif %}>
+                        {{ course.code }}: {{ course.title }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-2"></i>Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if materials.items %}
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for material in materials.items %}
+    <div class="col">
+        <div class="card h-100 border-0 shadow">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-truncate">{{ material.title }}</h5>
+                    <span class="badge bg-light text-dark">
+                        {{ material.course.code }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="card-text mb-3">{{ material.description|default('No description provided')|truncate(100) }}</p>
+                
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <small class="text-muted">
+                        <i class="fas fa-calendar-alt me-1"></i>{{ material.created_at.strftime('%b %d, %Y') }}
+                    </small>
+                    <small class="text-muted">
+                        <i class="fas fa-user me-1"></i>{{ material.created_by.get_full_name() }}
+                    </small>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('materials.view', material_id=material.id) }}" class="btn btn-outline-primary">
+                        <i class="fas fa-eye me-2"></i>View
+                    </a>
+                    {% if material.file_path %}
+                    <a href="{{ url_for('materials.download', material_id=material.id) }}" class="btn btn-outline-success">
+                        <i class="fas fa-download me-2"></i>Download
+                    </a>
+                    {% elif material.url %}
+                    <a href="{{ material.url }}" target="_blank" class="btn btn-outline-info">
+                        <i class="fas fa-external-link-alt me-2"></i>Open Link
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if current_user.is_admin() or current_user.id == material.created_by_id or (current_user.is_faculty() and material.course.faculty_id == current_user.id) %}
+            <div class="card-footer bg-transparent">
+                <div class="btn-group w-100">
+                    <a href="{{ url_for('materials.edit', material_id=material.id) }}" class="btn btn-warning">
+                        <i class="fas fa-edit me-1"></i>Edit
+                    </a>
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ material.id }}">
+                        <i class="fas fa-trash me-1"></i>Delete
+                    </button>
+                </div>
+                
+                <!-- Delete Modal -->
+                <div class="modal fade" id="deleteModal{{ material.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ material.id }}" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="deleteModalLabel{{ material.id }}">Confirm Deletion</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Are you sure you want to delete the material "{{ material.title }}"?</p>
+                                <p class="text-danger">This action cannot be undone.</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <form action="{{ url_for('materials.delete', material_id=material.id) }}" method="post">
+                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+<nav aria-label="Material pagination" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if materials.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('materials.index', page=materials.prev_num, course_id=current_course_id) }}">
+                <i class="fas fa-chevron-left"></i> Previous
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link"><i class="fas fa-chevron-left"></i> Previous</span>
+        </li>
+        {% endif %}
+        
+        {% for page_num in materials.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+                {% if page_num == materials.page %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_num }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('materials.index', page=page_num, course_id=current_course_id) }}">
+                        {{ page_num }}
+                    </a>
+                </li>
+                {% endif %}
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">…</span>
+            </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if materials.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('materials.index', page=materials.next_num, course_id=current_course_id) }}">
+                Next <i class="fas fa-chevron-right"></i>
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">Next <i class="fas fa-chevron-right"></i></span>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% else %}
+<div class="card border-0 shadow">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-file-pdf fa-4x text-muted mb-4"></i>
+        <h3>No Materials Available</h3>
+        {% if current_user.is_admin() or current_user.is_faculty() %}
+        <p>Start by uploading your first course material.</p>
+        <a href="{{ url_for('materials.create') }}" class="btn btn-primary mt-2">
+            <i class="fas fa-upload me-2"></i>Upload Material
+        </a>
+        {% else %}
+        <p>No course materials are available for your courses yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

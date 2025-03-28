@@ -1,0 +1,332 @@
+{% extends "layout.html" %}
+
+{% block title %}Student Performance - Analytics - College ERP System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2"><i class="fas fa-chart-line me-2"></i>My Performance</h1>
+    
+    {% if courses %}
+    <div class="form-inline">
+        <select class="form-select" id="courseSelector">
+            <option value="">Overall Performance</option>
+            {% for course in courses %}
+            <option value="{{ course.id }}" {% if selected_course_id == course.id %}selected{% endif %}>
+                {{ course.code }}: {{ course.title }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
+</div>
+
+{% if analytics %}
+<!-- Overall Performance Stats -->
+<div class="row">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white mb-4 border-0 shadow">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">{{ analytics.enrolled_courses|length }}</h5>
+                        <h6 class="text-white-50">Enrolled Courses</h6>
+                    </div>
+                    <div>
+                        <i class="fas fa-book fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card bg-success text-white mb-4 border-0 shadow">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">{{ analytics.overall_avg_grade|round(1) if analytics.overall_avg_grade else 'N/A' }}</h5>
+                        <h6 class="text-white-50">Average Grade</h6>
+                    </div>
+                    <div>
+                        <i class="fas fa-star fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card bg-info text-white mb-4 border-0 shadow">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">{{ analytics.recent_submissions|length }}</h5>
+                        <h6 class="text-white-50">Recent Submissions</h6>
+                    </div>
+                    <div>
+                        <i class="fas fa-file-alt fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if selected_course_id and selected_course %}
+<!-- Course-Specific Performance -->
+<div class="card border-0 shadow mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>Performance in {{ selected_course.code }}: {{ selected_course.title }}</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <canvas id="coursePerformanceChart" height="250"></canvas>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-light h-100">
+                    <div class="card-body">
+                        {% if course_specific_data %}
+                        <h5 class="card-title">Course Statistics</h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item bg-transparent px-0">
+                                <div class="d-flex justify-content-between">
+                                    <span>Assignment Completion:</span>
+                                    <span class="fw-bold">{{ course_specific_data.submission_count }}/{{ course_specific_data.assignment_count }}</span>
+                                </div>
+                                <div class="progress mt-1" style="height: 10px;">
+                                    <div class="progress-bar bg-primary" role="progressbar" 
+                                         style="width: {{ course_specific_data.completion_rate }}%"
+                                         aria-valuenow="{{ course_specific_data.completion_rate }}" 
+                                         aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </li>
+                            <li class="list-group-item bg-transparent px-0">
+                                <div class="d-flex justify-content-between">
+                                    <span>Average Grade:</span>
+                                    <span class="fw-bold">{{ course_specific_data.avg_grade|round(1) if course_specific_data.avg_grade else 'N/A' }}</span>
+                                </div>
+                            </li>
+                        </ul>
+                        
+                        {% if performance_prediction %}
+                        <div class="card bg-info text-white mt-3">
+                            <div class="card-body">
+                                <h6 class="card-title"><i class="fas fa-magic me-2"></i>Performance Prediction</h6>
+                                <p>
+                                    <strong>Predicted Final Grade:</strong> 
+                                    {{ performance_prediction.prediction|round(1) if performance_prediction.prediction else 'N/A' }}
+                                </p>
+                                <p class="small mb-0">{{ performance_prediction.explanation }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                            <h5>No performance data available</h5>
+                            <p class="text-muted">No grades or submissions recorded for this course yet.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Course Performance Overview -->
+<div class="card border-0 shadow mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Course Performance Overview</h5>
+    </div>
+    <div class="card-body p-0">
+        {% if analytics.course_performance %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Course</th>
+                        <th>Completion</th>
+                        <th>Average Grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for course in analytics.course_performance %}
+                    <tr class="{% if selected_course_id == course.course_id %}table-primary{% endif %}">
+                        <td>
+                            <a href="{{ url_for('analytics.student_dashboard', course_id=course.course_id) }}">
+                                <strong>{{ course.course_code }}</strong>: {{ course.course_title }}
+                            </a>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="progress flex-grow-1 me-2" style="height: 10px;">
+                                    <div class="progress-bar bg-{{ 'success' if course.completion_rate >= 80 else 'primary' if course.completion_rate >= 60 else 'warning' if course.completion_rate >= 40 else 'danger' }}" 
+                                         role="progressbar" style="width: {{ course.completion_rate }}%" 
+                                         aria-valuenow="{{ course.completion_rate }}" aria-valuemin="0" aria-valuemax="100">
+                                    </div>
+                                </div>
+                                <span>{{ course.completion_rate|int }}%</span>
+                            </div>
+                        </td>
+                        <td>
+                            {% if course.avg_grade is not none %}
+                            <span class="badge bg-{{ 'success' if course.avg_grade >= 90 else 'primary' if course.avg_grade >= 80 else 'warning' if course.avg_grade >= 70 else 'danger' }}">
+                                {{ course.avg_grade|round(1) }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">No grades</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center p-4">
+            <p class="text-muted mb-0">No course performance data available yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="card border-0 shadow">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Activity</h5>
+    </div>
+    <div class="card-body p-0">
+        {% if analytics.recent_submissions %}
+        <div class="list-group list-group-flush">
+            {% for submission in analytics.recent_submissions %}
+            <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">{{ submission.assignment_title }}</h6>
+                    <small class="badge bg-{{ 'success' if submission.status == 'graded' else 'info' if submission.status == 'submitted' else 'warning' }}">
+                        {{ submission.status.capitalize() }}
+                    </small>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <p class="mb-1 small text-muted">
+                        <i class="fas fa-book me-1"></i>{{ submission.course_code }}
+                        <span class="mx-2">|</span>
+                        <i class="fas fa-calendar-alt me-1"></i>{{ submission.submission_date.strftime('%b %d, %Y') }}
+                        {% if submission.is_late %}
+                        <span class="badge bg-danger ms-2">Late</span>
+                        {% endif %}
+                    </p>
+                    
+                    {% if submission.grade is not none %}
+                    <span class="badge bg-{{ 'success' if submission.grade >= 90 else 'primary' if submission.grade >= 80 else 'warning' if submission.grade >= 70 else 'danger' }}">
+                        {{ submission.grade|round(1) }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center p-4">
+            <p class="text-muted mb-0">No recent activity available yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% else %}
+<div class="alert alert-warning">
+    <div class="d-flex">
+        <div class="me-3">
+            <i class="fas fa-exclamation-circle fa-2x"></i>
+        </div>
+        <div>
+            <h5 class="alert-heading">No Performance Data Available</h5>
+            <p class="mb-0">You don't have any performance data yet. Once you start submitting assignments and receiving grades, your performance analytics will appear here.</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Course selector
+    const courseSelector = document.getElementById('courseSelector');
+    if (courseSelector) {
+        courseSelector.addEventListener('change', function() {
+            if (this.value) {
+                window.location.href = '{{ url_for("analytics.student_dashboard") }}?course_id=' + this.value;
+            } else {
+                window.location.href = '{{ url_for("analytics.student_dashboard") }}';
+            }
+        });
+    }
+    
+    {% if selected_course_id and course_specific_data and course_specific_data.assignment_count > 0 %}
+    // Course performance chart
+    const ctx = document.getElementById('coursePerformanceChart').getContext('2d');
+    
+    // Sample data based on course performance
+    // In a real system, this would be populated with actual assignment grades
+    // Using random data for demonstration
+    const assignmentLabels = [];
+    const assignmentScores = [];
+    
+    // Generate random assignment data based on course stats
+    for (let i = 1; i <= {{ course_specific_data.assignment_count }}; i++) {
+        assignmentLabels.push(`Assignment ${i}`);
+        // Generate scores that average to the student's course average
+        const baseScore = {{ course_specific_data.avg_grade or 75 }};
+        const randomVariation = Math.random() * 20 - 10; // -10 to +10
+        assignmentScores.push(Math.min(100, Math.max(0, baseScore + randomVariation)));
+    }
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: assignmentLabels,
+            datasets: [{
+                label: 'Assignment Scores',
+                data: assignmentScores,
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 2,
+                tension: 0.3,
+                pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+                pointRadius: 4
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Score'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Assignments'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Assignment Performance'
+                }
+            }
+        }
+    });
+    {% endif %}
+});
+</script>
+{% endblock %}

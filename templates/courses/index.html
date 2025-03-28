@@ -1,0 +1,103 @@
+{% extends "layout.html" %}
+
+{% block title %}Courses - College ERP System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2"><i class="fas fa-book me-2"></i>Courses</h1>
+    {% if current_user.is_admin() or current_user.is_faculty() %}
+    <a href="{{ url_for('courses.create') }}" class="btn btn-primary">
+        <i class="fas fa-plus-circle me-2"></i>Create New Course
+    </a>
+    {% endif %}
+</div>
+
+{% if courses %}
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for course in courses %}
+    <div class="col">
+        <div class="card h-100 border-0 shadow">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ course.code }}</h5>
+                    <span class="badge {{ 'bg-success' if course.is_active else 'bg-secondary' }}">
+                        {{ 'Active' if course.is_active else 'Inactive' }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">{{ course.title }}</h5>
+                <p class="card-text text-muted small">{{ course.description|truncate(100) }}</p>
+                
+                <div class="mb-3">
+                    <small class="text-muted d-block">
+                        <i class="fas fa-chalkboard-teacher me-1"></i>Faculty: 
+                        <span class="fw-bold">{{ course.faculty.get_full_name() if course.faculty else 'Not Assigned' }}</span>
+                    </small>
+                    <small class="text-muted d-block mt-1">
+                        <i class="fas fa-user-graduate me-1"></i>Students: 
+                        <span class="fw-bold">{{ course.students|length }}</span>
+                    </small>
+                    <small class="text-muted d-block mt-1">
+                        <i class="fas fa-calendar me-1"></i>Duration: 
+                        <span class="fw-bold">
+                            {% if course.start_date and course.end_date %}
+                                {{ course.start_date.strftime('%b %d, %Y') }} - {{ course.end_date.strftime('%b %d, %Y') }}
+                            {% else %}
+                                Not specified
+                            {% endif %}
+                        </span>
+                    </small>
+                    <small class="text-muted d-block mt-1">
+                        <i class="fas fa-award me-1"></i>Credits: 
+                        <span class="fw-bold">{{ course.credits }}</span>
+                    </small>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <div class="btn-group w-100">
+                    <a href="{{ url_for('courses.view', course_id=course.id) }}" class="btn btn-primary">
+                        <i class="fas fa-eye me-1"></i>View
+                    </a>
+                    {% if current_user.is_admin() or (current_user.is_faculty() and course.faculty_id == current_user.id) %}
+                    <a href="{{ url_for('courses.edit', course_id=course.id) }}" class="btn btn-warning">
+                        <i class="fas fa-edit me-1"></i>Edit
+                    </a>
+                    {% elif current_user.is_student() %}
+                    {% if course in current_user.enrolled_courses %}
+                    <form action="{{ url_for('student.unenroll_course', course_id=course.id) }}" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-user-minus me-1"></i>Unenroll
+                        </button>
+                    </form>
+                    {% else %}
+                    <form action="{{ url_for('student.enroll_course', course_id=course.id) }}" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-user-plus me-1"></i>Enroll
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card border-0 shadow">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-book fa-4x text-muted mb-4"></i>
+        <h3>No Courses Available</h3>
+        {% if current_user.is_admin() or current_user.is_faculty() %}
+        <p>Start by creating your first course.</p>
+        <a href="{{ url_for('courses.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-2"></i>Create New Course
+        </a>
+        {% elif current_user.is_student() %}
+        <p>No courses are available for enrollment yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends "layout.html" %}
+
+{% block title %}Edit Course: {{ course.code }} - College ERP System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('courses.index') }}">Courses</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('courses.view', course_id=course.id) }}">{{ course.code }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Edit</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-0 shadow">
+            <div class="card-header bg-warning">
+                <h4 class="mb-0"><i class="fas fa-edit me-2"></i>Edit Course: {{ course.code }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('courses.edit', course_id=course.id) }}">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="code" class="form-label">Course Code</label>
+                            <input type="text" class="form-control" id="code" name="code" required 
+                                   value="{{ course.code }}">
+                            <div class="form-text">A unique identifier for the course.</div>
+                        </div>
+                        <div class="col-md-8">
+                            <label for="title" class="form-label">Course Title</label>
+                            <input type="text" class="form-control" id="title" name="title" required
+                                   value="{{ course.title }}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Course Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="4">{{ course.description }}</textarea>
+                    </div>
+                    
+                    {% if current_user.is_admin() %}
+                    <div class="mb-3">
+                        <label for="faculty_id" class="form-label">Faculty</label>
+                        <select class="form-select" id="faculty_id" name="faculty_id">
+                            <option value="" {% if not course.faculty_id %}selected{% endif %}>Not Assigned</option>
+                            {% for faculty in faculty_list %}
+                            <option value="{{ faculty.id }}" {% if course.faculty_id == faculty.id %}selected{% endif %}>
+                                {{ faculty.get_full_name() }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date"
+                                   value="{{ course.start_date.strftime('%Y-%m-%d') if course.start_date else '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date"
+                                   value="{{ course.end_date.strftime('%Y-%m-%d') if course.end_date else '' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="credits" class="form-label">Credits</label>
+                        <input type="number" class="form-control" id="credits" name="credits" 
+                               value="{{ course.credits }}" min="1" max="6">
+                        <div class="form-text">The number of credits earned for completing this course.</div>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="is_active" name="is_active"
+                               {% if course.is_active %}checked{% endif %}>
+                        <label class="form-check-label" for="is_active">Active</label>
+                        <div class="form-text">Inactive courses are hidden from students.</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('courses.view', course_id=course.id) }}" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-save me-2"></i>Update Course
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

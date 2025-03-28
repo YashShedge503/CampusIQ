@@ -1,0 +1,137 @@
+/* Main custom CSS for the College ERP System */
+
+/* General styles */
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1 0 auto;
+}
+
+footer {
+    flex-shrink: 0;
+}
+
+/* Dashboard stat cards */
+.stat-card {
+    border-radius: 10px;
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-card .card-body {
+    padding: 1.5rem;
+}
+
+.stat-icon {
+    font-size: 2.5rem;
+    opacity: 0.8;
+}
+
+/* Login and registration forms */
+.auth-form-container {
+    max-width: 450px;
+    margin: 0 auto;
+}
+
+.auth-form {
+    padding: 2rem;
+    border-radius: 10px;
+}
+
+/* Course and assignment cards */
+.course-card {
+    height: 100%;
+    transition: all 0.3s ease;
+}
+
+.course-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.assignment-card {
+    border-left-width: 5px !important;
+}
+
+.assignment-card.upcoming {
+    border-left-color: var(--bs-warning) !important;
+}
+
+.assignment-card.completed {
+    border-left-color: var(--bs-success) !important;
+}
+
+.assignment-card.overdue {
+    border-left-color: var(--bs-danger) !important;
+}
+
+/* Analytics charts */
+.chart-container {
+    height: 300px;
+    margin-bottom: 2rem;
+}
+
+/* Profile page */
+.profile-header {
+    padding: 2rem 0;
+}
+
+.profile-avatar {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 5px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Schedule calendar */
+.calendar-event {
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-radius: 5px;
+}
+
+/* Material cards */
+.material-card {
+    transition: all 0.3s ease;
+}
+
+.material-card:hover {
+    transform: translateY(-5px);
+}
+
+.material-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+/* Custom badges */
+.badge-ai {
+    background-color: var(--bs-purple);
+    color: white;
+}
+
+/* Loading spinner */
+.spinner-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+}
+
+/* Feature icon */
+.feature-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+}

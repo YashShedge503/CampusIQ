@@ -1,0 +1,164 @@
+{% extends "layout.html" %}
+
+{% block title %}Edit Assignment - Faculty - College ERP System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('faculty.assignments') }}">Assignments</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Edit Assignment</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-0 shadow">
+            <div class="card-header bg-warning">
+                <h4 class="mb-0"><i class="fas fa-edit me-2"></i>Edit Assignment</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('faculty.edit_assignment', assignment_id=assignment.id) }}">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="title" name="title" required
+                               value="{{ assignment.title }}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description & Instructions</label>
+                        <textarea class="form-control" id="description" name="description" rows="6">{{ assignment.description }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="course_id" class="form-label">Course</label>
+                        <select class="form-select" id="course_id" name="course_id" required>
+                            <option value="" disabled>Select a course</option>
+                            {% for course in courses %}
+                            <option value="{{ course.id }}" {% if assignment.course_id == course.id %}selected{% endif %}>
+                                {{ course.code }}: {{ course.title }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="due_date" class="form-label">Due Date</label>
+                            <input type="datetime-local" class="form-control" id="due_date" name="due_date" required
+                                   value="{{ assignment.due_date.strftime('%Y-%m-%dT%H:%M') }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="max_score" class="form-label">Maximum Score</label>
+                            <input type="number" class="form-control" id="max_score" name="max_score" 
+                                   value="{{ assignment.max_score }}" min="1" step="0.1" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="weight" class="form-label">Weight</label>
+                            <input type="number" class="form-control" id="weight" name="weight" 
+                                   value="{{ assignment.weight }}" min="0.1" max="5" step="0.1">
+                            <div class="form-text">Impact on final grade</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status" required>
+                            <option value="DRAFT" {% if assignment.status.value == 'draft' %}selected{% endif %}>
+                                Draft (hidden from students)
+                            </option>
+                            <option value="PUBLISHED" {% if assignment.status.value == 'published' %}selected{% endif %}>
+                                Published (visible to students)
+                            </option>
+                            <option value="CLOSED" {% if assignment.status.value == 'closed' %}selected{% endif %}>
+                                Closed (no longer accepting submissions)
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <i class="fas fa-info-circle fa-2x"></i>
+                            </div>
+                            <div>
+                                <h5 class="alert-heading">Assignment Statistics</h5>
+                                <p class="mb-0">
+                                    <strong>Submissions:</strong> {{ assignment.submissions|length }}
+                                    <br>
+                                    <strong>Created:</strong> {{ assignment.created_at.strftime('%b %d, %Y') }}
+                                    <br>
+                                    <strong>Last Updated:</strong> {{ assignment.updated_at.strftime('%b %d, %Y') }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('faculty.assignments') }}" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-save me-2"></i>Update Assignment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Submissions Preview -->
+        {% if assignment.submissions %}
+        <div class="card border-0 shadow mt-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Recent Submissions</h5>
+                <a href="{{ url_for('faculty.submissions') }}?assignment_id={{ assignment.id }}" class="btn btn-sm btn-primary">
+                    View All Submissions
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Student</th>
+                                <th>Submitted</th>
+                                <th>Status</th>
+                                <th>Grade</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for submission in assignment.submissions[:5] %}
+                            <tr>
+                                <td>{{ submission.student.get_full_name() }}</td>
+                                <td>
+                                    {{ submission.submission_date.strftime('%b %d, %Y %H:%M') }}
+                                    {% if submission.is_late() %}
+                                    <span class="badge bg-danger ms-1">Late</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if submission.status.value == 'graded' else 'info' if submission.status.value == 'submitted' else 'warning' if submission.status.value == 'late' else 'secondary' }}">
+                                        {{ submission.status.value }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if submission.grade %}
+                                    {{ submission.grade.score }}/{{ assignment.max_score }}
+                                    {% else %}
+                                    <a href="{{ url_for('faculty.grade_submission', submission_id=submission.id) }}" class="btn btn-sm btn-outline-primary">
+                                        Grade
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

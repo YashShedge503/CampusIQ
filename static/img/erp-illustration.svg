@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800px" height="600px" viewBox="0 0 800 600" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>College ERP Illustration</title>
+    <defs>
+        <linearGradient x1="0%" y1="0%" x2="100%" y2="100%" id="gradient-1">
+            <stop stop-color="#4F46E5" offset="0%"></stop>
+            <stop stop-color="#7C3AED" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="0%" y1="0%" x2="100%" y2="100%" id="gradient-2">
+            <stop stop-color="#3B82F6" offset="0%"></stop>
+            <stop stop-color="#2563EB" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="0%" y1="0%" x2="100%" y2="100%" id="gradient-3">
+            <stop stop-color="#10B981" offset="0%"></stop>
+            <stop stop-color="#059669" offset="100%"></stop>
+        </linearGradient>
+    </defs>
+    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <!-- Background Elements -->
+        <circle fill="url(#gradient-1)" opacity="0.1" cx="150" cy="150" r="100"></circle>
+        <circle fill="url(#gradient-2)" opacity="0.1" cx="650" cy="450" r="120"></circle>
+        <circle fill="url(#gradient-3)" opacity="0.1" cx="400" cy="520" r="80"></circle>
+        
+        <!-- Main Building -->
+        <rect fill="#2D3748" x="250" y="200" width="300" height="250" rx="4"></rect>
+        <rect fill="#1A202C" x="230" y="180" width="340" height="20" rx="2"></rect>
+        <rect fill="#4A5568" x="220" y="150" width="360" height="30" rx="2"></rect>
+        
+        <!-- Windows -->
+        <rect fill="#90CDF4" x="280" y="230" width="50" height="60" rx="2"></rect>
+        <rect fill="#90CDF4" x="350" y="230" width="50" height="60" rx="2"></rect>
+        <rect fill="#90CDF4" x="420" y="230" width="50" height="60" rx="2"></rect>
+        <rect fill="#90CDF4" x="280" y="310" width="50" height="60" rx="2"></rect>
+        <rect fill="#90CDF4" x="350" y="310" width="50" height="60" rx="2"></rect>
+        <rect fill="#90CDF4" x="420" y="310" width="50" height="60" rx="2"></rect>
+        
+        <!-- Door -->
+        <rect fill="#4A5568" x="350" y="380" width="100" height="70" rx="2"></rect>
+        <rect fill="#2D3748" x="390" y="390" width="20" height="60"></rect>
+        
+        <!-- Steps -->
+        <rect fill="#4A5568" x="330" y="450" width="140" height="10" rx="2"></rect>
+        <rect fill="#4A5568" x="340" y="460" width="120" height="10" rx="2"></rect>
+        <rect fill="#4A5568" x="350" y="470" width="100" height="10" rx="2"></rect>
+        
+        <!-- Pillars -->
+        <rect fill="#4A5568" x="250" y="200" width="20" height="250"></rect>
+        <rect fill="#4A5568" x="530" y="200" width="20" height="250"></rect>
+        
+        <!-- Floating UI Elements -->
+        
+        <!-- Dashboard Card -->
+        <g transform="translate(100, 250)">
+            <rect fill="#1A202C" x="0" y="0" width="120" height="140" rx="8"></rect>
+            <rect fill="#2D3748" x="10" y="10" width="100" height="30" rx="4"></rect>
+            <rect fill="#4A5568" x="10" y="50" width="40" height="8" rx="2"></rect>
+            <rect fill="#4A5568" x="10" y="65" width="100" height="5" rx="2"></rect>
+            <rect fill="#4A5568" x="10" y="75" width="80" height="5" rx="2"></rect>
+            <rect fill="#4A5568" x="10" y="85" width="90" height="5" rx="2"></rect>
+            <circle fill="url(#gradient-1)" cx="30" cy="115" r="15"></circle>
+            <rect fill="#4A5568" x="55" y="105" width="55" height="5" rx="2"></rect>
+            <rect fill="#4A5568" x="55" y="115" width="45" height="5" rx="2"></rect>
+            <rect fill="#4A5568" x="55" y="125" width="35" height="5" rx="2"></rect>
+        </g>
+        
+        <!-- Chart Card -->
+        <g transform="translate(580, 200)">
+            <rect fill="#1A202C" x="0" y="0" width="120" height="140" rx="8"></rect>
+            <rect fill="#2D3748" x="10" y="10" width="100" height="20" rx="4"></rect>
+            <line stroke="#4A5568" stroke-width="2" x1="20" y1="80" x2="20" y2="40"></line>
+            <line stroke="#4A5568" stroke-width="2" x1="20" y1="80" x2="100" y2="80"></line>
+            <rect fill="url(#gradient-2)" x="30" y="60" width="10" height="20" rx="1"></rect>
+            <rect fill="url(#gradient-1)" x="50" y="50" width="10" height="30" rx="1"></rect>
+            <rect fill="url(#gradient-3)" x="70" y="45" width="10" height="35" rx="1"></rect>
+            <rect fill="#4A5568" x="10" y="100" width="100" height="5" rx="2"></rect>
+            <rect fill="#4A5568" x="10" y="110" width="80" height="5" rx="2"></rect>
+            <rect fill="#4A5568" x="10" y="120" width="60" height="5" rx="2"></rect>
+        </g>
+        
+        <!-- Calendar Card -->
+        <g transform="translate(580, 380)">
+            <rect fill="#1A202C" x="0" y="0" width="120" height="140" rx="8"></rect>
+            <rect fill="#2D3748" x="10" y="10" width="100" height="25" rx="4"></rect>
+            <line stroke="#4A5568" stroke-width="1" x1="10" y1="50" x2="110" y2="50"></line>
+            <rect fill="#4A5568" x="20" y="60" width="20" height="20" rx="2"></rect>
+            <rect fill="url(#gradient-1)" x="50" y="60" width="20" height="20" rx="2"></rect>
+            <rect fill="#4A5568" x="80" y="60" width="20" height="20" rx="2"></rect>
+            <rect fill="#4A5568" x="20" y="90" width="20" height="20" rx="2"></rect>
+            <rect fill="#4A5568" x="50" y="90" width="20" height="20" rx="2"></rect>
+            <rect fill="url(#gradient-3)" x="80" y="90" width="20" height="20" rx="2"></rect>
+            <rect fill="#4A5568" x="10" y="120" width="100" height="5" rx="2"></rect>
+            <rect fill="#4A5568" x="10" y="130" width="70" height="5" rx="2"></rect>
+        </g>
+        
+        <!-- AI Icon -->
+        <g transform="translate(125, 100)">
+            <circle fill="url(#gradient-1)" opacity="0.8" cx="50" cy="50" r="50"></circle>
+            <path d="M35,35 L65,65 M35,65 L65,35" stroke="white" stroke-width="6" stroke-linecap="round"></path>
+            <circle fill="white" cx="50" cy="50" r="8"></circle>
+            <path d="M30,30 C25,45 25,55 30,70 M70,30 C75,45 75,55 70,70" stroke="white" stroke-width="4" stroke-linecap="round"></path>
+        </g>
+        
+        <!-- Graduation Cap -->
+        <g transform="translate(550, 80)">
+            <rect fill="#2D3748" x="15" y="40" width="70" height="15" rx="2"></rect>
+            <polygon fill="#4A5568" points="50,10 90,30 50,50 10,30"></polygon>
+            <circle fill="#1A202C" cx="50" cy="30" r="5"></circle>
+            <line stroke="#4A5568" stroke-width="3" x1="50" y1="30" x2="80" y2="60" stroke-linecap="round"></line>
+            <circle fill="#4A5568" cx="80" cy="60" r="5"></circle>
+        </g>
+        
+        <!-- Connecting Lines -->
+        <path d="M175,150 C200,180 250,200 280,230" stroke="#4A5568" stroke-width="2" stroke-dasharray="5,5"></path>
+        <path d="M580,130 C550,170 520,190 470,230" stroke="#4A5568" stroke-width="2" stroke-dasharray="5,5"></path>
+        <path d="M580,450 C520,430 470,410 450,380" stroke="#4A5568" stroke-width="2" stroke-dasharray="5,5"></path>
+        <path d="M220,320 C240,330 260,340 280,340" stroke="#4A5568" stroke-width="2" stroke-dasharray="5,5"></path>
+        <path d="M640,270 C600,280 570,290 530,290" stroke="#4A5568" stroke-width="2" stroke-dasharray="5,5"></path>
+    </g>
+</svg>

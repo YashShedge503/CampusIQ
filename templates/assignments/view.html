@@ -1,0 +1,289 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ assignment.title }} - College ERP System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('assignments.index') }}">Assignments</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ assignment.title }}</li>
+        </ol>
+    </nav>
+    
+    <div class="btn-group">
+        {% if current_user.is_admin() or (current_user.is_faculty() and assignment.course.faculty_id == current_user.id) %}
+        <a href="{{ url_for('faculty.edit_assignment', assignment_id=assignment.id) }}" class="btn btn-warning">
+            <i class="fas fa-edit me-1"></i>Edit
+        </a>
+        {% elif current_user.is_student() %}
+        <a href="{{ url_for('student.submit_assignment', assignment_id=assignment.id) }}" class="btn btn-primary">
+            <i class="fas fa-paper-plane me-1"></i>Submit
+        </a>
+        {% endif %}
+        <a href="{{ url_for('assignments.index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Assignment Details -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">{{ assignment.title }}</h4>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="badge bg-{{ 'primary' if assignment.status.value == 'published' else 'secondary' if assignment.status.value == 'draft' else 'danger' }}">
+                        {{ assignment.status.value }}
+                    </span>
+                    <span class="text-muted">
+                        <i class="fas fa-book me-1"></i>{{ assignment.course.code }}: {{ assignment.course.title }}
+                    </span>
+                </div>
+                
+                <h5 class="mb-3">Instructions</h5>
+                <div class="card mb-4">
+                    <div class="card-body bg-light">
+                        {{ assignment.description|safe }}
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 text-muted">Due Date</h6>
+                                <p class="card-text">
+                                    <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                                    {{ assignment.due_date.strftime('%B %d, %Y') }}
+                                </p>
+                                <p class="card-text">
+                                    <i class="fas fa-clock me-2 text-primary"></i>
+                                    {{ assignment.due_date.strftime('%I:%M %p') }}
+                                </p>
+                                {% if assignment.due_date > now %}
+                                <p class="card-text text-success">
+                                    <i class="fas fa-hourglass-half me-2"></i>
+                                    {{ (assignment.due_date - now).days }} days left
+                                </p>
+                                {% else %}
+                                <p class="card-text text-danger">
+                                    <i class="fas fa-exclamation-circle me-2"></i>
+                                    Due date has passed
+                                </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 text-muted">Grading</h6>
+                                <p class="card-text">
+                                    <i class="fas fa-star me-2 text-warning"></i>
+                                    <strong>Max Score:</strong> {{ assignment.max_score }}
+                                </p>
+                                <p class="card-text">
+                                    <i class="fas fa-balance-scale me-2 text-info"></i>
+                                    <strong>Weight:</strong> {{ assignment.weight }}
+                                </p>
+                                <p class="card-text">
+                                    <i class="fas fa-file-alt me-2 text-success"></i>
+                                    <strong>Submissions:</strong> {{ assignment.submissions|length }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if current_user.is_student() %}
+                <div class="alert alert-{{ 'success' if user_submission else 'warning' }}">
+                    <div class="d-flex">
+                        <div class="me-3">
+                            <i class="fas fa-{{ 'check-circle' if user_submission else 'exclamation-circle' }} fa-2x"></i>
+                        </div>
+                        <div>
+                            <h5 class="alert-heading">
+                                {% if user_submission %}
+                                You have submitted this assignment
+                                {% else %}
+                                You haven't submitted this assignment yet
+                                {% endif %}
+                            </h5>
+                            {% if user_submission %}
+                            <p class="mb-0">
+                                Submitted on {{ user_submission.submission_date.strftime('%B %d, %Y at %I:%M %p') }}
+                                {% if user_submission.is_late() %}
+                                <span class="badge bg-danger ms-2">Late</span>
+                                {% endif %}
+                            </p>
+                            <p class="mb-0">
+                                Status: 
+                                <span class="badge bg-{{ 'success' if user_submission.status.value == 'graded' else 'info' if user_submission.status.value == 'submitted' else 'warning' }}">
+                                    {{ user_submission.status.value }}
+                                </span>
+                            </p>
+                            {% if user_submission.grade %}
+                            <p class="mb-0">
+                                <strong>Grade:</strong> {{ user_submission.grade.score }}/{{ assignment.max_score }}
+                            </p>
+                            {% endif %}
+                            <div class="mt-3">
+                                <a href="{{ url_for('student.submit_assignment', assignment_id=assignment.id) }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-edit me-1"></i>Update Submission
+                                </a>
+                                <a href="{{ url_for('student.view_submission', submission_id=user_submission.id) }}" class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-eye me-1"></i>View Submission
+                                </a>
+                            </div>
+                            {% else %}
+                            <p class="mb-0">Submit your work before the deadline to receive feedback and grades.</p>
+                            <div class="mt-3">
+                                <a href="{{ url_for('student.submit_assignment', assignment_id=assignment.id) }}" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-2"></i>Submit Assignment
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        {% if current_user.is_admin() or current_user.is_faculty() %}
+        <!-- Recent Submissions -->
+        <div class="card border-0 shadow mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Recent Submissions</h5>
+                <a href="{{ url_for('faculty.submissions') }}?assignment_id={{ assignment.id }}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% if submissions %}
+                <div class="list-group list-group-flush">
+                    {% for submission in submissions[:5] %}
+                    <a href="{{ url_for('assignments.grade', assignment_id=assignment.id, submission_id=submission.id) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ submission.student.get_full_name() }}</h6>
+                            <small class="text-{{ 'danger' if submission.is_late() else 'success' }}">
+                                {{ 'Late' if submission.is_late() else 'On Time' }}
+                            </small>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>
+                                <small class="badge bg-{{ 'success' if submission.status.value == 'graded' else 'info' if submission.status.value == 'submitted' else 'warning' }}">
+                                    {{ submission.status.value }}
+                                </small>
+                            </span>
+                            <small class="text-muted">{{ submission.submission_date.strftime('%b %d, %H:%M') }}</small>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center p-4">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <p>No submissions yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="card border-0 shadow">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('faculty.submissions') }}?assignment_id={{ assignment.id }}" class="btn btn-outline-primary">
+                        <i class="fas fa-list-ul me-2"></i>View All Submissions
+                    </a>
+                    <a href="{{ url_for('faculty.edit_assignment', assignment_id=assignment.id) }}" class="btn btn-outline-warning">
+                        <i class="fas fa-edit me-2"></i>Edit Assignment
+                    </a>
+                    {% if assignment.status.value == 'draft' %}
+                    <form action="{{ url_for('faculty.edit_assignment', assignment_id=assignment.id) }}" method="post" class="d-grid">
+                        <input type="hidden" name="title" value="{{ assignment.title }}">
+                        <input type="hidden" name="description" value="{{ assignment.description }}">
+                        <input type="hidden" name="course_id" value="{{ assignment.course_id }}">
+                        <input type="hidden" name="due_date" value="{{ assignment.due_date.strftime('%Y-%m-%dT%H:%M') }}">
+                        <input type="hidden" name="max_score" value="{{ assignment.max_score }}">
+                        <input type="hidden" name="weight" value="{{ assignment.weight }}">
+                        <input type="hidden" name="status" value="PUBLISHED">
+                        <button type="submit" class="btn btn-outline-success">
+                            <i class="fas fa-paper-plane me-2"></i>Publish Assignment
+                        </button>
+                    </form>
+                    {% elif assignment.status.value == 'published' %}
+                    <form action="{{ url_for('faculty.edit_assignment', assignment_id=assignment.id) }}" method="post" class="d-grid">
+                        <input type="hidden" name="title" value="{{ assignment.title }}">
+                        <input type="hidden" name="description" value="{{ assignment.description }}">
+                        <input type="hidden" name="course_id" value="{{ assignment.course_id }}">
+                        <input type="hidden" name="due_date" value="{{ assignment.due_date.strftime('%Y-%m-%dT%H:%M') }}">
+                        <input type="hidden" name="max_score" value="{{ assignment.max_score }}">
+                        <input type="hidden" name="weight" value="{{ assignment.weight }}">
+                        <input type="hidden" name="status" value="CLOSED">
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="fas fa-lock me-2"></i>Close Assignment
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- Course Info -->
+        <div class="card border-0 shadow mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-book me-2"></i>Course Information</h5>
+            </div>
+            <div class="card-body">
+                <h6>{{ assignment.course.code }}: {{ assignment.course.title }}</h6>
+                <p class="text-muted">{{ assignment.course.description|truncate(150) }}</p>
+                <p><strong>Faculty:</strong> {{ assignment.course.faculty.get_full_name() if assignment.course.faculty else 'Not Assigned' }}</p>
+                <div class="d-grid">
+                    <a href="{{ url_for('courses.view', course_id=assignment.course.id) }}" class="btn btn-outline-primary">
+                        <i class="fas fa-book-open me-2"></i>View Course
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Other Assignments -->
+        <div class="card border-0 shadow">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Other Assignments</h5>
+            </div>
+            <div class="card-body p-0">
+                {% set course_assignments = assignment.course.assignments %}
+                {% if course_assignments|length > 1 %}
+                <div class="list-group list-group-flush">
+                    {% for course_assignment in course_assignments %}
+                    {% if course_assignment.id != assignment.id and course_assignment.status.value == 'published' %}
+                    <a href="{{ url_for('assignments.view', assignment_id=course_assignment.id) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ course_assignment.title }}</h6>
+                            <small>{{ course_assignment.due_date.strftime('%b %d') }}</small>
+                        </div>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center p-4">
+                    <p class="mb-0">No other assignments in this course.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

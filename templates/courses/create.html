@@ -1,0 +1,85 @@
+{% extends "layout.html" %}
+
+{% block title %}Create New Course - College ERP System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('courses.index') }}">Courses</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Create New Course</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-0 shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Create New Course</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('courses.create') }}">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="code" class="form-label">Course Code</label>
+                            <input type="text" class="form-control" id="code" name="code" required 
+                                   placeholder="e.g., CS101">
+                            <div class="form-text">A unique identifier for the course.</div>
+                        </div>
+                        <div class="col-md-8">
+                            <label for="title" class="form-label">Course Title</label>
+                            <input type="text" class="form-control" id="title" name="title" required
+                                   placeholder="e.g., Introduction to Computer Science">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Course Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="4" 
+                                  placeholder="Provide a detailed description of the course..."></textarea>
+                    </div>
+                    
+                    {% if current_user.is_admin() %}
+                    <div class="mb-3">
+                        <label for="faculty_id" class="form-label">Faculty</label>
+                        <select class="form-select" id="faculty_id" name="faculty_id">
+                            <option value="" selected disabled>Select faculty member</option>
+                            {% for faculty in faculty_list %}
+                            <option value="{{ faculty.id }}">{{ faculty.get_full_name() }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="credits" class="form-label">Credits</label>
+                        <input type="number" class="form-control" id="credits" name="credits" value="3" min="1" max="6">
+                        <div class="form-text">The number of credits earned for completing this course.</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('courses.index') }}" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Create Course
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

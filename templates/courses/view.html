@@ -1,0 +1,278 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ course.code }}: {{ course.title }} - College ERP System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('courses.index') }}">Courses</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ course.code }}</li>
+        </ol>
+    </nav>
+    
+    <div class="btn-group">
+        {% if current_user.is_admin() or (current_user.is_faculty() and course.faculty_id == current_user.id) %}
+        <a href="{{ url_for('courses.edit', course_id=course.id) }}" class="btn btn-warning">
+            <i class="fas fa-edit me-1"></i>Edit Course
+        </a>
+        {% endif %}
+        <a href="{{ url_for('courses.index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Courses
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Course Details -->
+    <div class="col-md-8">
+        <div class="card border-0 shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">{{ course.code }}: {{ course.title }}</h4>
+            </div>
+            <div class="card-body">
+                <div class="badge {{ 'bg-success' if course.is_active else 'bg-secondary' }} mb-3">
+                    {{ 'Active' if course.is_active else 'Inactive' }}
+                </div>
+                
+                <h5 class="mb-3">Course Description</h5>
+                <p>{{ course.description or 'No description available.' }}</p>
+                
+                <hr>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Course Details</h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item bg-transparent px-0">
+                                <i class="fas fa-chalkboard-teacher me-2 text-primary"></i>
+                                <strong>Faculty:</strong> {{ course.faculty.get_full_name() if course.faculty else 'Not Assigned' }}
+                            </li>
+                            <li class="list-group-item bg-transparent px-0">
+                                <i class="fas fa-user-graduate me-2 text-primary"></i>
+                                <strong>Students:</strong> {{ course.students|length }}
+                            </li>
+                            <li class="list-group-item bg-transparent px-0">
+                                <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                                <strong>Start Date:</strong> {{ course.start_date.strftime('%b %d, %Y') if course.start_date else 'Not specified' }}
+                            </li>
+                            <li class="list-group-item bg-transparent px-0">
+                                <i class="fas fa-calendar-check me-2 text-primary"></i>
+                                <strong>End Date:</strong> {{ course.end_date.strftime('%b %d, %Y') if course.end_date else 'Not specified' }}
+                            </li>
+                            <li class="list-group-item bg-transparent px-0">
+                                <i class="fas fa-award me-2 text-primary"></i>
+                                <strong>Credits:</strong> {{ course.credits }}
+                            </li>
+                            <li class="list-group-item bg-transparent px-0">
+                                <i class="fas fa-clock me-2 text-primary"></i>
+                                <strong>Created:</strong> {{ course.created_at.strftime('%b %d, %Y') }}
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        {% if current_user.is_faculty() and course.faculty_id == current_user.id %}
+                        <h5 class="mb-3">Quick Actions</h5>
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('faculty.new_assignment') }}?course_id={{ course.id }}" class="btn btn-outline-primary">
+                                <i class="fas fa-plus-circle me-2"></i>Create Assignment
+                            </a>
+                            <a href="{{ url_for('materials.create') }}?course_id={{ course.id }}" class="btn btn-outline-success">
+                                <i class="fas fa-file-upload me-2"></i>Upload Material
+                            </a>
+                            <a href="{{ url_for('courses.manage_students', course_id=course.id) }}" class="btn btn-outline-info">
+                                <i class="fas fa-users-cog me-2"></i>Manage Students
+                            </a>
+                            <a href="{{ url_for('schedule.create') }}?course_id={{ course.id }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-calendar-plus me-2"></i>Schedule Event
+                            </a>
+                        </div>
+                        {% elif current_user.is_student() %}
+                        <h5 class="mb-3">Your Status</h5>
+                        <div class="alert {{ 'alert-success' if course in current_user.enrolled_courses else 'alert-warning' }}">
+                            <i class="{{ 'fas fa-check-circle' if course in current_user.enrolled_courses else 'fas fa-exclamation-circle' }} me-2"></i>
+                            {% if course in current_user.enrolled_courses %}
+                            You are enrolled in this course.
+                            {% else %}
+                            You are not enrolled in this course.
+                            {% endif %}
+                        </div>
+                        
+                        {% if course in current_user.enrolled_courses %}
+                        <form action="{{ url_for('student.unenroll_course', course_id=course.id) }}" method="post" class="mt-3">
+                            <button type="submit" class="btn btn-danger w-100">
+                                <i class="fas fa-user-minus me-2"></i>Unenroll from Course
+                            </button>
+                        </form>
+                        {% else %}
+                        <form action="{{ url_for('student.enroll_course', course_id=course.id) }}" method="post" class="mt-3">
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="fas fa-user-plus me-2"></i>Enroll in Course
+                            </button>
+                        </form>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-md-4">
+        <!-- Assignments -->
+        <div class="card border-0 shadow mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Assignments</h5>
+                {% if current_user.is_faculty() and course.faculty_id == current_user.id %}
+                <a href="{{ url_for('faculty.new_assignment') }}?course_id={{ course.id }}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-plus"></i>
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                {% if assignments %}
+                <div class="list-group list-group-flush">
+                    {% for assignment in assignments %}
+                    <a href="{{ url_for('assignments.view', assignment_id=assignment.id) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ assignment.title }}</h6>
+                            <span class="badge bg-{{ 'primary' if assignment.status.value == 'published' else 'secondary' if assignment.status.value == 'draft' else 'danger' }}">
+                                {{ assignment.status.value }}
+                            </span>
+                        </div>
+                        <small class="d-block">Due: {{ assignment.due_date.strftime('%b %d, %Y') }}</small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center p-3">
+                    <p class="text-muted mb-0">No assignments yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Course Materials -->
+        <div class="card border-0 shadow mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-file-pdf me-2"></i>Materials</h5>
+                {% if current_user.is_faculty() and course.faculty_id == current_user.id %}
+                <a href="{{ url_for('materials.create') }}?course_id={{ course.id }}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-plus"></i>
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                {% if materials %}
+                <div class="list-group list-group-flush">
+                    {% for material in materials %}
+                    <a href="{{ url_for('materials.view', material_id=material.id) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ material.title }}</h6>
+                            <small>{{ material.created_at.strftime('%b %d') }}</small>
+                        </div>
+                        <small>{{ material.description|truncate(50) }}</small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center p-3">
+                    <p class="text-muted mb-0">No materials yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Students -->
+        {% if current_user.is_admin() or current_user.is_faculty() %}
+        <div class="card border-0 shadow">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-user-graduate me-2"></i>Students</h5>
+                <a href="{{ url_for('courses.manage_students', course_id=course.id) }}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-users-cog"></i>
+                </a>
+            </div>
+            <div class="card-body p-0">
+                {% if students %}
+                <div class="list-group list-group-flush">
+                    {% for student in students %}
+                    <div class="list-group-item">
+                        {{ student.get_full_name() }}
+                        <small class="text-muted d-block">{{ student.email }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center p-3">
+                    <p class="text-muted mb-0">No students enrolled yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if progression_data and current_user.is_faculty() %}
+<!-- Course Progression for Faculty -->
+<div class="card border-0 shadow mt-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Student Progress</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Overall Grade</th>
+                        {% for assignment in assignments %}
+                        <th>{{ assignment.title }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student_data in progression_data %}
+                    <tr>
+                        <td>{{ student_data.student_name }}</td>
+                        <td>
+                            {% if student_data.overall_grade is not none %}
+                            <span class="badge bg-{{ 'success' if student_data.overall_grade >= 90 else 'primary' if student_data.overall_grade >= 80 else 'warning' if student_data.overall_grade >= 70 else 'danger' }}">
+                                {{ "%.1f"|format(student_data.overall_grade) }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">N/A</span>
+                            {% endif %}
+                        </td>
+                        {% for assignment_data in student_data.assignments %}
+                        <td>
+                            {% if assignment_data.score is not none %}
+                            <span class="badge bg-{{ 'success' if assignment_data.percentage >= 90 else 'primary' if assignment_data.percentage >= 80 else 'warning' if assignment_data.percentage >= 70 else 'danger' }}">
+                                {{ "%.1f"|format(assignment_data.score) }}
+                            </span>
+                            {% elif assignment_data.submitted %}
+                            <span class="badge bg-info">Submitted</span>
+                            {% else %}
+                            <span class="badge bg-secondary">-</span>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Course view specific JavaScript
+});
+</script>
+{% endblock %}

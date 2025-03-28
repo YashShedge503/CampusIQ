@@ -1,0 +1,281 @@
+{% extends "layout.html" %}
+
+{% block title %}Faculty Dashboard - College ERP System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2 mb-0"><i class="fas fa-tachometer-alt me-2"></i>Faculty Dashboard</h1>
+    <span class="badge bg-warning fs-6">Faculty</span>
+</div>
+
+<div class="row">
+    <!-- Stats Cards -->
+    <div class="col-md-4">
+        <div class="card bg-primary text-white mb-4 border-0 shadow">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">{{ course_count }}</h5>
+                        <h6 class="text-white-50">Courses</h6>
+                    </div>
+                    <div>
+                        <i class="fas fa-book fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a class="small text-white stretched-link" href="{{ url_for('courses.index') }}">View Courses</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card bg-success text-white mb-4 border-0 shadow">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">{{ total_students }}</h5>
+                        <h6 class="text-white-50">Students</h6>
+                    </div>
+                    <div>
+                        <i class="fas fa-user-graduate fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a class="small text-white stretched-link" href="{{ url_for('courses.index') }}">View Course Students</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card bg-info text-white mb-4 border-0 shadow">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">{{ pending_submissions|length }}</h5>
+                        <h6 class="text-white-50">Pending Grading</h6>
+                    </div>
+                    <div>
+                        <i class="fas fa-tasks fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a class="small text-white stretched-link" href="{{ url_for('faculty.submissions') }}">Grade Submissions</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Course Overview -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100 border-0 shadow">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-book me-2"></i>Course Overview</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if courses %}
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Code</th>
+                                <th>Title</th>
+                                <th>Students</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for course in courses %}
+                            <tr>
+                                <td>{{ course.code }}</td>
+                                <td>{{ course.title }}</td>
+                                <td>{{ student_counts.get(course.id, 0) }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('courses.view', course_id=course.id) }}" class="btn btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('courses.edit', course_id=course.id) }}" class="btn btn-outline-warning">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{{ url_for('faculty.assignments') }}?course_id={{ course.id }}" class="btn btn-outline-info">
+                                            <i class="fas fa-tasks"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center p-4">
+                    <i class="fas fa-book fa-3x text-muted mb-3"></i>
+                    <p>You don't have any courses assigned yet.</p>
+                    <a href="{{ url_for('courses.create') }}" class="btn btn-primary">Create New Course</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Assignments -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100 border-0 shadow">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Recent Assignments</h5>
+                <a href="{{ url_for('faculty.assignments') }}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_assignments %}
+                <div class="list-group list-group-flush">
+                    {% for assignment in recent_assignments %}
+                    <a href="{{ url_for('faculty.edit_assignment', assignment_id=assignment.id) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ assignment.title }}</h6>
+                            <small class="text-muted">{{ assignment.course.code }}</small>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-truncate me-3" style="max-width: 300px;">
+                                {{ assignment.description|striptags|truncate(50) }}
+                            </small>
+                            <span class="badge bg-{{ 'primary' if assignment.status.value == 'published' else 'secondary' if assignment.status.value == 'draft' else 'danger' }}">
+                                {{ assignment.status.value }}
+                            </span>
+                        </div>
+                        <small class="d-block mt-1">
+                            Due: {{ assignment.due_date.strftime('%b %d, %Y') }}
+                        </small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center p-4">
+                    <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                    <p>No assignments created yet.</p>
+                    <a href="{{ url_for('faculty.new_assignment') }}" class="btn btn-primary">Create Assignment</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Pending Submissions -->
+    <div class="col-md-7 mb-4">
+        <div class="card h-100 border-0 shadow">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Pending Submissions</h5>
+                <a href="{{ url_for('faculty.submissions') }}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% if pending_submissions %}
+                <div class="list-group list-group-flush">
+                    {% for submission in pending_submissions %}
+                    <a href="{{ url_for('faculty.grade_submission', submission_id=submission.id) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ submission.assignment.title }}</h6>
+                            <small class="text-{{ 'danger' if submission.is_late() else 'success' }}">
+                                {{ 'Late' if submission.is_late() else 'On Time' }}
+                            </small>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>
+                                <small class="text-muted me-2">Student:</small>
+                                <small class="fw-bold">{{ submission.student.get_full_name() }}</small>
+                            </span>
+                            <small class="text-muted">{{ submission.submission_date.strftime('%b %d, %Y %H:%M') }}</small>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center p-4">
+                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <p>No pending submissions to grade. Great job!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Upcoming Deadlines & Schedule -->
+    <div class="col-md-5 mb-4">
+        <div class="card border-0 shadow">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Upcoming Deadlines</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if upcoming_deadlines %}
+                <div class="list-group list-group-flush">
+                    {% for assignment in upcoming_deadlines %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ assignment.title }}</h6>
+                            <small class="text-muted">{{ assignment.course.code }}</small>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small>Due: {{ assignment.due_date.strftime('%b %d, %Y') }}</small>
+                            <span class="badge bg-{{ 'warning' if (assignment.due_date - now).days <= 3 else 'info' }}">
+                                {{ (assignment.due_date - now).days }} days left
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center p-3">
+                    <p class="mb-0">No upcoming deadlines.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Schedule Suggestions -->
+        <div class="card border-0 shadow mt-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-magic me-2"></i>Schedule Suggestions</h5>
+                <a href="{{ url_for('schedule.index') }}" class="btn btn-sm btn-primary">View Schedule</a>
+            </div>
+            <div class="card-body p-0">
+                {% if schedule_suggestions %}
+                <div class="list-group list-group-flush">
+                    {% for suggestion in schedule_suggestions[:3] %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ suggestion.title }}</h6>
+                            <small class="text-muted">{{ suggestion.type }}</small>
+                        </div>
+                        <p class="mb-1 small">{{ suggestion.description }}</p>
+                        <small>
+                            <i class="fas fa-clock me-1"></i>
+                            Suggested: {{ suggestion.suggested_times[0].strftime('%b %d, %H:%M') if suggestion.suggested_times else 'Flexible' }}
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center p-3">
+                    <p class="mb-0">No schedule suggestions available.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Faculty dashboard specific JavaScript
+});
+</script>
+{% endblock %}

@@ -1,0 +1,159 @@
+{% extends "layout.html" %}
+
+{% block title %}Create Schedule Event - College ERP System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('schedule.index') }}">Schedule</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Create Event</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-calendar-plus me-2"></i>Create Schedule Event</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('schedule.create') }}">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Event Title</label>
+                        <input type="text" class="form-control" id="title" name="title" required
+                               value="{{ request.args.get('title', '') }}"
+                               placeholder="e.g., Office Hours, Study Session, Lecture">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"
+                                  placeholder="Brief description of the event">{{ request.args.get('description', '') }}</textarea>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="start_time" class="form-label">Start Time</label>
+                            <input type="datetime-local" class="form-control" id="start_time" name="start_time" required
+                                   value="{{ request.args.get('start_time', '') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="end_time" class="form-label">End Time</label>
+                            <input type="datetime-local" class="form-control" id="end_time" name="end_time" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="course_id" class="form-label">Related Course (Optional)</label>
+                            <select class="form-select" id="course_id" name="course_id">
+                                <option value="">No specific course</option>
+                                {% for course in courses %}
+                                <option value="{{ course.id }}" {% if preselected_course_id == course.id or request.args.get('course_id')|int == course.id %}selected{% endif %}>
+                                    {{ course.code }}: {{ course.title }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="location" class="form-label">Location (Optional)</label>
+                            <input type="text" class="form-control" id="location" name="location"
+                                   placeholder="e.g., Room 101, Library, Online">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_recurring" name="is_recurring">
+                            <label class="form-check-label" for="is_recurring">
+                                This is a recurring event
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="recurrenceOptions" class="mb-3 border p-3 rounded" style="display: none;">
+                        <label for="recurrence_pattern" class="form-label">Recurrence Pattern</label>
+                        <select class="form-select mb-2" id="recurrence_pattern" name="recurrence_pattern">
+                            <option value="daily">Daily</option>
+                            <option value="weekly" selected>Weekly</option>
+                            <option value="biweekly">Bi-Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="MWF">Monday, Wednesday, Friday</option>
+                            <option value="TR">Tuesday, Thursday</option>
+                        </select>
+                        <div class="form-text">
+                            The event will repeat according to this pattern. Note: This is a simplified implementation; recurring events are stored as individual instances.
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('schedule.index') }}" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Create Event
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default date/time values if not provided
+    const startTimeInput = document.getElementById('start_time');
+    const endTimeInput = document.getElementById('end_time');
+    
+    if (!startTimeInput.value) {
+        // Default to current time, rounded to nearest hour
+        const now = new Date();
+        now.setMinutes(0, 0, 0); // Round to the nearest hour
+        
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        
+        startTimeInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+    
+    // Default end time is start time + 1 hour
+    startTimeInput.addEventListener('change', updateEndTime);
+    
+    // Initially set end time
+    updateEndTime();
+    
+    // Toggle recurring options visibility
+    const isRecurringCheckbox = document.getElementById('is_recurring');
+    const recurrenceOptions = document.getElementById('recurrenceOptions');
+    
+    isRecurringCheckbox.addEventListener('change', function() {
+        recurrenceOptions.style.display = this.checked ? 'block' : 'none';
+    });
+    
+    // Function to set end time based on start time
+    function updateEndTime() {
+        if (startTimeInput.value && !endTimeInput.value) {
+            const startDate = new Date(startTimeInput.value);
+            const endDate = new Date(startDate);
+            endDate.setHours(endDate.getHours() + 1);
+            
+            const year = endDate.getFullYear();
+            const month = String(endDate.getMonth() + 1).padStart(2, '0');
+            const day = String(endDate.getDate()).padStart(2, '0');
+            const hours = String(endDate.getHours()).padStart(2, '0');
+            const minutes = String(endDate.getMinutes()).padStart(2, '0');
+            
+            endTimeInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+    }
+});
+</script>
+{% endblock %}
