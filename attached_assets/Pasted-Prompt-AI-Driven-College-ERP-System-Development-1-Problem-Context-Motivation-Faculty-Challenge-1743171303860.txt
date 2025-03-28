@@ -1,0 +1,80 @@
+Prompt: AI-Driven College ERP System Development
+
+1. Problem Context & Motivation
+
+Faculty Challenges:
+
+Faculty spend excessive time on repetitive administrative tasks (e.g., grading, scheduling, managing course materials).
+
+This limits their ability to engage meaningfully with students.
+
+Student Needs:
+
+Students require streamlined, efficient systems for assignment submissions, exam preparation, and project management.
+
+Current Platform Limitations:
+
+Existing educational platforms do not offer the level of intelligent automation or seamless integration needed to address these issues.
+
+2. Core Problem Statement
+Design an AI-driven College Enterprise Resource Planning (ERP) system that:
+
+Optimizes academic workflows.
+
+Enhances productivity for both faculty and students.
+
+Leverages AI for intelligent automation, real-time communication, and data-driven insights.
+
+Improves overall faculty efficiency and enriches the student learning experience.
+
+3. Key Functional Areas & Features to Explore
+
+Faculty Efficiency:
+
+Integrate AI tools to automate repetitive tasks such as grading, scheduling, and content creation.
+
+Enable faculty to focus on high-value activities like teaching, mentoring, and student engagement.
+
+Smart Assignment and Project Management:
+
+Develop a dynamic workspace for managing assignments with:
+
+Multimedia submission support.
+
+AI-assisted evaluation and automated feedback generation.
+
+Deadline tracking and notifications.
+
+Facilitate collaborative workflows for peer reviews and enhanced faculty-student interaction.
+
+Learning Analytics and Insights:
+
+Utilize AI-driven analytics to monitor student performance.
+
+Generate actionable insights, identify at-risk students, and detect performance trends.
+
+Provide personalized learning path suggestions through an intuitive interface.
+
+Code Repository Integration:
+
+Seamlessly integrate with code repository platforms (e.g., GitHub).
+
+Allow direct code-based assignment submissions, version tracking, and efficient faculty feedback on coding projects.
+
+4. Additional Value-Added Features (Aura Points):
+
+Adaptive Learning Paths:
+
+Implement systems that offer personalized course recommendations based on individual student performance and learning patterns.
+
+Research Discovery and Collaboration:
+
+Develop AI-powered tools to suggest relevant research papers.
+
+Assist in finding potential research collaborators and support literature review processes.
+
+Scheduling Assistant:
+
+Automate the scheduling of faculty meetings, office hours, and project review sessions.
+
+Optimize scheduling based on real-time availability and efficiency considerations.
